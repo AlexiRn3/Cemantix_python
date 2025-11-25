@@ -6,21 +6,22 @@ let entries = []; // stockage interne avant affichage
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const word = input.value.trim();
+    let word = input.value.trim().toLowerCase();
     if (!word) return;
+
+     if (entries.some(e => e.word === word)) {
+    addHistoryMessage(`Mot déjà proposé : ${word}`);
+    input.value = "";
+    return;
+}
 
     const res = await fetch(`/guess?word=${word}`, { method: "POST" });
     const data = await res.json();
 
     let entry;
 
-    if (!data.exists) {
-        entry = {
-            word,
-            temp: null,
-            progression: null,
-        };
-    } else {
+    if (data.exists) {
+
         entry = {
             word,
             temp: data.temperature,
@@ -28,7 +29,9 @@ form.addEventListener("submit", async (e) => {
         };
     }
 
+    if (!entries.some(e => e.word === word)) {
     entries.push(entry);
+    }
     renderHistory(); // TRI + ANIMATION
 
     // gestion des messages & confettis
