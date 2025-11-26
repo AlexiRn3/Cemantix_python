@@ -10,15 +10,14 @@ from core.game_engine import CemantixEngine
 
 
 def get_simple_random_word(model):
-    vocab = list(model.key_to_index.keys())
-    simple_words = [
-        w
-        for w in vocab
+    vocab = model.key_to_index.keys()
+    frequent_words = [
+        w for w in vocab
         if 4 <= len(w) <= 8
         and re.fullmatch(r"[a-zàâçéèêëîïôûùüÿñæœ]+", w)
+        and model.get_vecattr(w, "count") > 8000  # seuil à ajuster
     ]
-    return random.choice(simple_words)
-
+    return random.choice(frequent_words)
 
 @dataclass
 class PlayerStats:

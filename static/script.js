@@ -314,3 +314,8 @@ function addHistoryMessage(text) {
 
     messages.appendChild(msg);
 }
+
+function setRoomInfo(text) {
+    if (!roomInfo) return;
+    roomInfo.textContent = text;
+}
