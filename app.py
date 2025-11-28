@@ -144,6 +144,12 @@ def home():
         return f.read()
 
 
+@app.get("/hub", response_class=HTMLResponse)
+def hub_page():
+    with open("static/hub.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
 @app.post("/rooms")
 def create_room(payload: CreateRoomRequest):
     mode = normalize_mode(payload.mode)
