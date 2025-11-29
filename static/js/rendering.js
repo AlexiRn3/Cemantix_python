@@ -3,131 +3,110 @@ import { elements } from "./dom.js";
 import { setRoomInfo } from "./ui.js";
 
 export function addEntry(entry) {
-    state.entries.push(entry);
+    // Ajoute en haut de la liste (unshift au lieu de push pour l'ordre chrono inverse visuel)
+    state.entries.unshift(entry);
     renderHistory();
 }
 
 export function renderHistory() {
     elements.history.innerHTML = "";
 
-    state.entries.sort((a, b) => (b.progression ?? 0) - (a.progression ?? 0));
-
-    let index = 1;
+    // Pas de tri automatique, on affiche dans l'ordre d'arrivée (le plus récent en haut)
+    // ou alors on trie par "meilleur score" pour Cémantix uniquement.
+    // Pour l'instant, affichons l'historique chronologique inverse (plus récent en haut).
+    
+    let index = state.entries.length; 
+    
     for (const entry of state.entries) {
         const row = document.createElement("div");
-        row.className = "line";
+        const isWin = (entry.game_type === 'definition' && entry.feedback === 'Correct !') || (entry.progression >= 1000);
+        
+        row.className = `line ${isWin ? 'win' : ''}`;
 
-        const num = `<div class=\"num\">${index}&nbsp;</div>`;
-        const word = `<div class=\"word\">${entry.word}</div>`;
-        const player = `<div class=\"player\">${entry.player_name || "?"}</div>`;
+        const num = `<div class="num">#${index}</div>`;
+        const word = `<div class="word">${entry.word} <span style="opacity:0.5; font-size:0.8em">(${entry.player_name})</span></div>`;
+        
+        let meta = "";
+        let bar = "";
 
-        if (entry.temp === null || entry.temp === undefined) {
-            row.innerHTML = `
-                ${num}
-                ${player}
-                ${word}
-                <div class=\"icon\">❓</div>
-                <div class=\"temp\">—</div>
-                <div class=\"bar\"><div class=\"fill\"></div></div>
-            `;
+        if (entry.game_type === "cemantix") {
+            // Affichage Température
+            const tempVal = entry.temp !== undefined ? `${entry.temp}°C` : "—";
+            const icon = getIcon(entry.progression || 0);
+            meta = `<div class="meta">${icon} ${tempVal}</div>`;
+            bar = `<div class="score-bar"><div class="fill" style="width:${(entry.progression||0)/10}%"></div></div>`;
         } else {
-            row.innerHTML = `
-                ${num}
-                ${player}
-                ${word}
-                <div class=\"icon\">${getIcon(entry.progression)}</div>
-                <div class=\"temp\">${entry.temp}°C</div>
-                <div class=\"bar\"><div class=\"fill\"></div></div>
-            `;
+            // Affichage Indice Dictionnario
+            meta = `<div class="meta" style="color:var(--accent);">${entry.feedback || ""}</div>`;
+            bar = `<div></div>`; // Pas de barre
         }
 
+        row.innerHTML = `${num} ${word} ${meta} ${bar}`;
         elements.history.appendChild(row);
-
-        if (entry.progression !== null && entry.progression !== undefined) {
-            animateBar(row.querySelector(".fill"), entry.progression);
-        }
-
-        index++;
+        
+        index--;
     }
 }
 
 export function renderScoreboard(data) {
+    if (!elements.scoreboard) return;
     elements.scoreboard.innerHTML = "";
-    const table = document.createElement("div");
-    table.className = "scoreboard-table";
-
-    const header = document.createElement("div");
-    header.className = "scoreboard-row header";
-    header.innerHTML = `
-        <div>Joueur</div>
-        <div>Essais</div>
-        <div>Meilleure similitude</div>
-    `;
-    table.appendChild(header);
+    
+    // Tri : Similitude décroissante, puis tentatives croissantes
+    data.sort((a, b) => (b.best_similarity - a.best_similarity) || (a.attempts - b.attempts));
 
     for (const entry of data) {
         const row = document.createElement("div");
-        row.className = "scoreboard-row";
+        row.className = "score-row";
+        
+        // Affichage différent selon le jeu (pourcentage pour cemantix, juste essais pour dictio)
+        // Mais comme on n'a pas le game_type ici facilement, on affiche les essais, c'est universel.
         row.innerHTML = `
-            <div>${entry.player_name}</div>
-            <div>${entry.attempts}</div>
-            <div>${Math.round((entry.best_similarity || 0) * 100)}%</div>
+            <div class="score-name">${entry.player_name}</div>
+            <div style="color:var(--text-muted)">${entry.attempts} essais</div>
         `;
-        table.appendChild(row);
+        elements.scoreboard.appendChild(row);
     }
-
-    elements.scoreboard.appendChild(table);
     updateRoomStatus();
 }
 
 export function updateRoomStatus() {
-    if (!state.currentRoomId) {
-        setRoomInfo("Aucune room active");
-        return;
-    }
-    const status = state.roomLocked && state.currentMode === "race" ? "(verrouillée)" : "";
-    setRoomInfo(`Room ${state.currentRoomId} — mode ${state.currentMode} ${status}`);
+    if (!state.currentRoomId) return;
+    setRoomInfo(`Room ${state.currentRoomId} • ${state.currentMode === 'race' ? 'Course' : 'Coop'}`);
 }
 
 export function triggerConfetti() {
-    confetti({
-        particleCount: 900,
-        spread: 100,
-        origin: { y: 0.6 }
-    });
-}
+    // Canvas Confetti doit être chargé dans le HTML
+    if (window.confetti) {
+        const duration = 3000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-function animateBar(fillElement, progression) {
-    if (!fillElement) return;
-    const target = progression / 10;
-    let width = 0;
+        const randomInRange = (min, max) => Math.random() * (max - min) + min;
 
-    fillElement.style.background = getColor(progression);
+        const interval = setInterval(function() {
+            const timeLeft = animationEnd - Date.now();
 
-    const timer = setInterval(() => {
-        width += 2;
-        fillElement.style.width = width + "%";
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
 
-        if (width >= target) {
-            clearInterval(timer);
-            fillElement.style.width = target + "%";
-        }
-    }, 10);
+            const particleCount = 50 * (timeLeft / duration);
+            window.confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+            window.confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+        }, 250);
+    }
 }
 
 function getIcon(value) {
-    if (value >= 900) return "💥";
-    if (value >= 500) return "🔥";
-    if (value >= 200) return "🙂";
-    if (value >= 50) return "😐";
-    return "🥶";
+    if (value >= 1000) return "💥";
+    if (value >= 990) return "🥵";
+    if (value >= 900) return "🔥";
+    if (value >= 500) return "😎";
+    return "❄️";
 }
 
 function getColor(value) {
-    if (value >= 900) return "#ff0000";
-    if (value >= 700) return "#ff6d00";
-    if (value >= 500) return "#ffae00";
-    if (value >= 200) return "#ffee00";
-    if (value >= 50) return "#7ac6ff";
-    return "#4da3ff";
+    // Plus utilisé avec le nouveau design CSS, mais gardé au cas où
+    return `hsl(${value / 10}, 80%, 50%)`;
 }

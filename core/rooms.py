@@ -36,7 +36,17 @@ class GuessEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict):
+    def from_dict(cls, data: Dict, model):
+        # Récupération sécurisée du type de jeu (par défaut 'cemantix' pour les vieilles rooms)
+        g_type = data.get("game_type", "cemantix") 
+        
+        if g_type == "definition":
+            engine = DefinitionEngine()
+        else:
+            engine = CemantixEngine(model)
+            if "target_word" in data:
+                engine.new_game() # Init standard
+                engine.target_word = data["target_word"] # Force le mot de la sauvegarde
         return cls(
             word=data["word"],
             player_name=data["player_name"],
@@ -44,6 +54,9 @@ class GuessEntry:
             temperature=data.get("temperature"),
             feedback=data.get("feedback", "")
         )
+        room.players = {name: PlayerStats.from_dict(stats) for name, stats in data.get("players", {}).items()}
+        room.history = [GuessEntry.from_dict(entry) for entry in data.get("history", [])]
+        return room
 
 @dataclass
 class RoomState:
