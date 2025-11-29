@@ -74,6 +74,29 @@ class DefinitionEngine(GameEngine):
         self.target_word: Optional[str] = None
         self.definition: Optional[str] = None
 
+    def clean_wikicode(self, text: str) -> str:
+        if not text:
+            return text
+
+        t = text
+
+        # 1. Enlever les modèles {{...}}
+        t = re.sub(r"\{\{[^{}]*\}\}", "", t)
+
+        # 2. Enlever les liens [[mot]] → mot
+        t = re.sub(r"\[\[([^|\]]+)\]\]", r"\1", t)
+
+        # 3. Enlever les liens [[mot|affichage]] → affichage
+        t = re.sub(r"\[\[[^|\]]+\|([^]]+)\]\]", r"\1", t)
+
+        # 4. Nettoyage des espaces multiples
+        t = re.sub(r"\s{2,}", " ", t)
+
+        # 5. Retirer espaces en trop avant la ponctuation
+        t = re.sub(r"\s+([,;:.!?])", r"\1", t)
+
+        return t.strip()
+
     # -------------------------------------------------------
     # 1) Vérifier existence du mot sur le Wiktionnaire
     # -------------------------------------------------------
@@ -192,7 +215,7 @@ class DefinitionEngine(GameEngine):
             if definition:
                 print(f"[DEF] Succès → {candidate} : {definition}")
                 self.target_word = candidate
-                self.definition = definition
+                self.definition = self.clean_wikicode(definition)
                 return
 
         # Fallback si rien trouvé
@@ -268,6 +291,8 @@ class IntruderEngine(GameEngine):
         self.options = []
         self.correct_word = None # C'est l'intrus
         self.theme_word = None
+
+
 
     def new_game(self):
         vocab_keys = list(self.model.key_to_index.keys())
