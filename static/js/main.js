@@ -55,6 +55,10 @@ ws.onmessage = (event) => {
                 feedback: data.feedback,
                 game_type: data.game_type
             });
+            if (data.team_score !== undefined) {
+                const scoreEl = document.getElementById('score-display');
+                if (scoreEl) scoreEl.textContent = data.team_score;
+            }
             break;
         case "scoreboard_update":
             renderScoreboard(data.scoreboard || []);
@@ -178,11 +182,13 @@ function renderIntruderGrid(options) {
 }
 
 // 3. Fonction d'envoi du guess (similaire au submit du formulaire)
+// Dans static/js/main.js
+
 async function submitIntruderGuess(word, buttonElement) {
     if (state.locked) return;
 
-    // Petit effet visuel immédiat pour dire "j'ai cliqué"
-    buttonElement.disabled = true; // Évite le double clic
+    // On désactive immédiatement le bouton cliqué
+    buttonElement.disabled = true;
 
     try {
         const res = await fetch(`/rooms/${roomId}/guess`, {
@@ -194,19 +200,34 @@ async function submitIntruderGuess(word, buttonElement) {
         
         if (data.error) {
             showModal("Oups", data.message);
-            buttonElement.disabled = false; // Réactive si erreur technique
+            buttonElement.disabled = false;
         } else {
             if (!data.is_correct) {
-                // CAS : MAUVAISE RÉPONSE -> ROUGE
+                // --- CAS : ERREUR ---
                 buttonElement.classList.add("wrong");
-                // On réactive le bouton après un petit délai si on veut permettre de spammer, 
-                // ou on le laisse désactivé pour dire "ce n'est pas celui là".
-                // Ici je le laisse désactivé "wrong" pour montrer qu'il a été éliminé.
+                addHistoryMessage(`❌ -1 point !`, 1000); // Petit feedback visuel
+
+                // 1. On récupère tous les boutons de la grille
+                const grid = document.getElementById("intruder-grid");
+                const allButtons = grid.querySelectorAll("button");
+
+                // 2. On les désactive tous (Cooldown global)
+                allButtons.forEach(btn => btn.disabled = true);
+
+                // 3. On attend 1 seconde (1000 ms)
+                setTimeout(() => {
+                    allButtons.forEach(btn => {
+                        // On réactive seulement ceux qui ne sont pas déjà marqués "faux"
+                        if (!btn.classList.contains("wrong")) {
+                            btn.disabled = false;
+                        }
+                    });
+                }, 1000);
+
             } else {
-                // CAS : BONNE RÉPONSE -> VERT
+                // --- CAS : VICTOIRE ---
                 buttonElement.classList.add("correct");
-                // Le passage au mot suivant se fera via le WebSocket (data.blitz_success)
-                // qui va recharger toute la grille.
+                // Pas besoin de gérer le timer ici, le WebSocket va recharger la grille
             }
         }
     } catch (err) {

@@ -125,12 +125,15 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
             blitz_data = {
                 "blitz_success": True,
                 "new_public_state": room.engine.get_public_state(),
-                "team_score": room.team_score
             }
         else:
             # Mode Classique : On verrouille
             if room.mode == "race" or room.mode == "coop":
                 room.locked = True
+    else:
+        # --- AJOUT : Pénalité en cas d'erreur ---
+        if room.mode == "blitz":
+            room.team_score -= 1
 
     progression = int(round(similarity * 1000)) if room.game_type == "cemantix" else 0
     
@@ -144,6 +147,7 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "progression": progression,
         "feedback": feedback,
         "game_type": room.game_type,
+        "team_score": room.team_score,
         **blitz_data  # <--- C'EST ICI LA CLÉ : on fusionne les infos de victoire dans le message
     }
     
