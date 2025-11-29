@@ -19,3 +19,5 @@ uvicorn app:app --host 0.0.0.0 --port 1256
 ```
 
 L'application expose une interface web servie depuis le dossier `static/`.
+
+Metionner https://fauconnier.github.io/
