@@ -946,6 +946,47 @@ document.getElementById('btn-join').onclick = () => {
     window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
 };
 
+// Ajoutez cet export pour qu'il soit utilisable dans websocket.js
+export function addChatMessage(player, content) {
+    const container = document.getElementById("chat-messages");
+    if (!container) return;
+
+    const div = document.createElement("div");
+    const isMe = player === currentUser; // currentUser vient de votre gestion de session
+    
+    div.className = `chat-msg ${isMe ? 'me' : 'others'}`;
+    div.innerHTML = `<strong>${player}</strong> ${content}`;
+    
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight; // Scroll vers le bas
+}
+
+// Fonction pour ouvrir/fermer le chat
+window.toggleChat = function() {
+    const chat = document.getElementById("chat-container");
+    chat.classList.toggle("collapsed");
+    const icon = document.getElementById("chat-toggle-icon");
+    icon.textContent = chat.classList.contains("collapsed") ? "▲" : "▼";
+};
+
+// Gestionnaire d'envoi du chat
+const chatForm = document.getElementById("chat-form");
+if (chatForm) {
+    chatForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = document.getElementById("chat-input");
+        const text = input.value.trim();
+        
+        if (text && state.websocket) {
+            state.websocket.send(JSON.stringify({
+                type: "chat",
+                content: text
+            }));
+            input.value = "";
+        }
+    });
+}
+
 window.createGame = createGame;
 window.openGameConfig = openGameConfig;
 window.openDictioConfig = openDictioConfig;

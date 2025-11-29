@@ -906,3 +906,111 @@ input:disabled {
     margin-top: 5px;
     font-style: italic;
 }
+
+/* --- CHAT STYLES --- */
+.chat-container {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    width: 320px;
+    background: white;
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+}
+
+.chat-container.collapsed {
+    transform: translateY(calc(100% - 50px)); /* Ne laisse dépasser que le header */
+}
+
+.chat-header {
+    padding: 15px;
+    background: var(--text-main);
+    color: white;
+    font-family: var(--font-heading);
+    border-radius: 15px 15px 0 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.chat-messages {
+    height: 300px;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #f9f9f9;
+}
+
+.chat-msg {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 10px;
+    max-width: 85%;
+    line-height: 1.4;
+}
+
+.chat-msg strong {
+    display: block;
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+    opacity: 0.7;
+}
+
+/* Messages des autres (à gauche, gris) */
+.chat-msg.others {
+    background: white;
+    border: 1px solid #eee;
+    align-self: flex-start;
+}
+
+/* Mes messages (à droite, accent) */
+.chat-msg.me {
+    background: var(--accent);
+    color: white;
+    align-self: flex-end;
+}
+
+.chat-form {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #eee;
+    background: white;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    margin-right: 5px;
+}
+
+.btn-small {
+    background: var(--text-main);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    cursor: pointer;
+}
+
+/* Badge Daily pour le Hub */
+.daily-badge {
+    background: linear-gradient(45deg, #FFD700, #FDB931); 
+    color: var(--text-main);
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: inline-block;
+}

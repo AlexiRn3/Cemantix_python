@@ -1,6 +1,7 @@
 import { state } from "./state.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti, updateRoomStatus } from "./rendering.js";
 import { addHistoryMessage, setRoomInfo } from "./ui.js";
+import { addChatMessage } from "./main.js";
 
 export function openWebsocket(playerName) {
     if (!state.currentRoomId) return;
@@ -37,6 +38,8 @@ export function openWebsocket(playerName) {
                 renderHistory();
                 renderScoreboard(data.scoreboard || []);
                 setRoomInfo(`Room ${state.currentRoomId} (${state.currentMode}) prête.`);
+                const chatHistory = data.chat_history || [];
+                chatHistory.forEach(msg => addChatMessage(msg.player_name, msg.content));
                 break;
             case "guess":
                 addEntry({
@@ -62,6 +65,9 @@ export function openWebsocket(playerName) {
                 state.roomLocked = true;
                 triggerConfetti();
                 updateRoomStatus();
+                break;
+            case "chat_message":
+                addChatMessage(data.player_name, data.content);
                 break;
             default:
                 break;
