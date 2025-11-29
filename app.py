@@ -148,6 +148,7 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "feedback": feedback,
         "game_type": room.game_type,
         "team_score": room.team_score,
+        **result,
         **blitz_data  # <--- C'EST ICI LA CLÉ : on fusionne les infos de victoire dans le message
     }
     
@@ -175,7 +176,7 @@ def game_page():
 @app.post("/rooms")
 def create_room(payload: CreateRoomRequest):
 
-    needs_model = payload.game_type in ["cemantix", "intruder"]
+    needs_model = payload.game_type in ["cemantix", "dictionnario", "intruder", "hangman"]
     
     if needs_model and model is None:
         return JSONResponse(status_code=500, content={"message": "Le modèle sémantique n'est pas chargé."})

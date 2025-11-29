@@ -59,6 +59,26 @@ ws.onmessage = (event) => {
                 const scoreEl = document.getElementById('score-display');
                 if (scoreEl) scoreEl.textContent = data.team_score;
             }
+            if (data.game_type === "hangman") {
+                 const wordEl = document.getElementById("hangman-word");
+                 if(wordEl && data.masked_word) wordEl.textContent = data.masked_word;
+                 
+                 // Mise à jour de la touche visuelle
+                 const btn = document.getElementById(`key-${data.word.toUpperCase()}`);
+                 if(btn) {
+                     btn.disabled = true;
+                     btn.style.backgroundColor = data.similarity > 0 ? "var(--success)" : "#eee";
+                     btn.style.color = data.similarity > 0 ? "white" : "#aaa";
+                     btn.style.borderColor = "transparent";
+                 }
+                 
+                 // Mise à jour batterie
+                 const bar = document.getElementById("hangman-battery");
+                 if(bar) {
+                     bar.style.width = `${data.lives * (100/7)}%`; // ou data.temperature
+                     if(data.lives < 3) bar.style.background = "var(--accent)";
+                 }
+            }
             break;
         case "scoreboard_update":
             renderScoreboard(data.scoreboard || []);
@@ -103,6 +123,27 @@ ws.onmessage = (event) => {
         
         addHistoryMessage(`✨ Mot trouvé ! Au suivant !`, 2000);
     }
+    if (data.game_type === "hangman") {
+        // Mettre à jour l'UI avec les infos reçues dans le guess_payload
+        // Astuce : le backend doit renvoyer 'masked_word' et 'lives' dans le payload du guess
+        // Il faut s'assurer que process_guess dans app.py inclut tout le 'result' dans le payload
+        
+        // Mise à jour manuelle simple si on n'a pas tout l'objet state :
+        const bar = document.getElementById("hangman-battery");
+        // On suppose que data.temperature contient le % de vie (calculé dans le moteur)
+        if(bar) bar.style.width = `${data.temperature}%`;
+        
+        // On désactive la touche correspondante
+        const btn = document.getElementById(`key-${data.word.toUpperCase()}`);
+        if(btn) {
+            btn.disabled = true;
+            if(data.similarity > 0) btn.style.borderColor = "var(--success)"; // Bonne lettre
+            else btn.style.borderColor = "var(--text-muted)"; // Mauvaise lettre
+        }
+        
+        // Le mot masqué se mettra à jour si on renvoie 'masked_word' dans le payload
+        // Modification nécessaire dans app.py -> process_guess -> guess_payload
+    }
 };
 
 function initGameUI(data) {
@@ -112,6 +153,7 @@ function initGameUI(data) {
     // 2. Gestion du Titre
     const titles = { "cemantix": "Cémantix", "definition": "Dictionnario", "intruder": "L'Intrus" };
     const titleEl = document.getElementById("game-title");
+    const hangmanArea = document.getElementById("hangman-area");
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
 
     // 3. Récupération des éléments d'interface
@@ -122,10 +164,21 @@ function initGameUI(data) {
     const gameLayout = document.querySelector(".game-layout");
 
     // 4. Réinitialisation de l'affichage (Tout masquer par précaution)
-    if (form) form.style.display = "flex"; // Par défaut on affiche le formulaire
+    if (form) form.style.display = "flex";
+    if (hangmanArea) hangmanArea.style.display = "none";
     if (instrBox) instrBox.style.display = "none";
     if (legendPanel) legendPanel.style.display = "none";
     if (intruderArea) intruderArea.style.display = "none";
+
+    if (data.game_type === "hangman") {
+        if (form) form.style.display = "none"; // On cache l'input texte standard
+        if (gameLayout) gameLayout.classList.add("intruder-focus"); // On centre (réutilisation du style intruder)
+        
+        if (hangmanArea) {
+            hangmanArea.style.display = "block";
+            renderHangmanUI(data.public_state);
+        }
+    }
 
     // 5. Logique spécifique par mode de jeu
     if (data.game_type === "intruder") {
@@ -436,4 +489,64 @@ function startTimer(endTime) {
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
+}
+
+function renderHangmanUI(state) {
+    // 1. Afficher le mot
+    document.getElementById("hangman-word").textContent = state.masked_word;
+
+    // 2. Barre de vie (Batterie)
+    const pct = (state.lives / state.max_lives) * 100;
+    const bar = document.getElementById("hangman-battery");
+    bar.style.width = `${pct}%`;
+    // Changement de couleur selon la vie restante
+    if(pct < 30) bar.style.background = "var(--accent)"; // Rouge
+    else if(pct < 60) bar.style.background = "var(--warning)"; // Jaune
+    else bar.style.background = "var(--success)"; // Vert
+
+    // 3. Clavier (si vide, on le génère)
+    const kb = document.getElementById("hangman-keyboard");
+    if (kb.innerHTML === "") {
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (let letter of alphabet) {
+            const btn = document.createElement("button");
+            btn.textContent = letter;
+            btn.className = "btn btn-outline"; // Réutilisation style bouton
+            btn.style.padding = "10px 15px"; // Plus petit
+            btn.style.minWidth = "45px";
+            btn.id = `key-${letter}`;
+            btn.onclick = () => submitHangmanGuess(letter, btn);
+            kb.appendChild(btn);
+        }
+    }
+
+    // 4. Mettre à jour les touches déjà utilisées (si reconnexion ou refresh)
+    if (state.used_letters) {
+        state.used_letters.forEach(l => {
+            const btn = document.getElementById(`key-${l}`);
+            if (btn) btn.disabled = true;
+        });
+    }
+}
+
+async function submitHangmanGuess(letter, btn) {
+    if (state.locked) return;
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`/rooms/${roomId}/guess`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ word: letter, player_name: playerName })
+        });
+        const data = await res.json();
+        
+        if (data.error) return; // Gérer erreur si besoin
+
+        // Si le guess n'est pas correct (victoire ou bon mot), feedback visuel
+        // Note: Le WebSocket fera la mise à jour globale, mais on peut faire un feedback local immédiat
+        if (data.feedback && !data.result.is_correct) {
+             // On pourrait faire trembler la barre de vie ici
+        }
+    } catch (e) { console.error(e); }
 }

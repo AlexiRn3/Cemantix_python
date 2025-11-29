@@ -2,6 +2,11 @@ import random
 import re
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
+import unicodedata
+
+def remove_accents(input_str):
+    nfkd_form = unicodedata.normalize('NFKD', input_str)
+    return "".join([c for c in nfkd_form if not unicodedata.mirrored(c) and c.isalpha()]).upper()
 
 # --- Base Game Class ---
 class GameEngine(ABC):
@@ -197,5 +202,93 @@ class IntruderEngine(GameEngine):
             "options": self.options
         }
     
+    def next_word(self):
+        self.new_game()
+
+class HangmanEngine(GameEngine):
+    def __init__(self, model):
+        self.model = model
+        self.target_word = None
+        self.normalized_target = None
+        self.found_letters = set()
+        self.wrong_letters = set()
+        self.max_lives = 7
+        self.lives = 7
+
+    def new_game(self):
+        vocab = self.model.key_to_index.keys()
+        # On choisit un mot fréquent (longueur 5 à 10)
+        frequent_words = [
+            w for w in vocab
+            if 5 <= len(w) <= 10
+            and re.fullmatch(r"[a-zàâçéèêëîïôûùüÿñæœ]+", w)
+            and self.model.get_vecattr(w, "count") > 50000
+        ]
+        self.target_word = random.choice(frequent_words)
+        # On normalise pour le jeu (Éléphant -> ELEPHANT) pour simplifier le clavier
+        self.normalized_target = remove_accents(self.target_word)
+        
+        self.found_letters = set()
+        self.wrong_letters = set()
+        self.lives = self.max_lives
+        print(f"[PENDU] Mot : {self.target_word} ({self.normalized_target})")
+
+    def guess(self, word: str) -> Dict[str, Any]:
+        if not self.target_word or self.normalized_target is None:
+            return {"exists": False, "error": "Jeu non initialisé"}
+        
+        letter = word
+        
+        # Nettoyage de l'entrée
+        l = remove_accents(letter.strip())
+        if not l or len(l) != 1:
+            return {"exists": False, "error": "Envoyez une seule lettre."}
+
+        if l in self.found_letters or l in self.wrong_letters:
+             return {"exists": False, "error": "Lettre déjà jouée."}
+
+        is_correct = l in self.normalized_target
+        
+        if is_correct:
+            self.found_letters.add(l)
+            feedback = "Bonne lettre !"
+        else:
+            self.wrong_letters.add(l)
+            self.lives -= 1
+            feedback = "Aïe, batterie touchée..."
+
+        # Vérification Victoire
+        # On vérifie si toutes les lettres du mot cible sont dans found_letters
+        victory = all(char in self.found_letters for char in self.normalized_target)
+
+        return {
+            "exists": True,
+            "is_correct": victory, # Victoire si mot complet
+            "similarity": 1.0 if is_correct else 0.0, # Pour compatibilité
+            "temperature": (self.lives / self.max_lives) * 100, # La température devient le % de batterie
+            "feedback": feedback,
+            "lives": self.lives,
+            "masked_word": self._get_masked_word()
+        }
+
+    def _get_masked_word(self):
+        # AJOUT DE SÉCURITÉ : Si pas de mot cible, on renvoie une chaine vide
+        if self.normalized_target is None:
+            return ""
+
+        # Maintenant le linter sait que self.normalized_target est une chaine valide
+        return " ".join([c if c in self.found_letters else "_" for c in self.normalized_target])
+
+    def get_public_state(self) -> Dict[str, Any]:
+        if not self.target_word:
+            return {}
+        return {
+            "game_type": "hangman",
+            "lives": self.lives,
+            "max_lives": self.max_lives,
+            "masked_word": self._get_masked_word(),
+            "used_letters": list(self.found_letters | self.wrong_letters)
+        }
+        
     def next_word(self):
         self.new_game()

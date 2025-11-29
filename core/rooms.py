@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Set
 
-from core.games import CemantixEngine, DefinitionEngine, GameEngine, IntruderEngine
+from core.games import CemantixEngine, DefinitionEngine, GameEngine, IntruderEngine, HangmanEngine
 
 @dataclass
 class PlayerStats:
@@ -139,8 +139,11 @@ class RoomManager:
         elif game_type == "intruder":
             engine = IntruderEngine(self.model)
             engine.new_game()
-        else:
+        elif game_type == "cemantix":
             engine = CemantixEngine(self.model)
+            engine.new_game()
+        else:
+            engine = HangmanEngine(self.model)
             engine.new_game()
         
         # Initialisation correcte avec game_type
