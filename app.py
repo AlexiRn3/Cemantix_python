@@ -175,7 +175,7 @@ def create_room(payload: CreateRoomRequest):
     if payload.game_type == "cemantix" and model is None:
         return JSONResponse(status_code=500, content={"message": "Le modèle Cémantix n'est pas chargé sur le serveur."})
 
-    mode = payload.mode if payload.mode in {"coop", "race"} else "coop"
+    mode = payload.mode if payload.mode in {"coop", "race", "blitz"} else "coop"
     room = room_manager.create_room(payload.game_type, mode, payload.player_name)
 
     if payload.mode == "blitz" and payload.duration > 0:
