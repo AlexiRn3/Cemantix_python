@@ -8,7 +8,6 @@ const params = new URLSearchParams(window.location.search);
 const roomId = params.get("room");
 const playerName = params.get("player");
 
-// Redirection si infos manquantes
 if (!roomId || !playerName) {
     console.error("Paramètres manquants, retour accueil.");
     window.location.href = "/";
@@ -23,9 +22,7 @@ const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
 const ws = new WebSocket(wsUrl);
 
-ws.onopen = () => {
-    console.log("Connecté au WS");
-};
+ws.onopen = () => { console.log("Connecté au WS"); };
 
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
@@ -58,6 +55,7 @@ ws.onmessage = (event) => {
 
         case "scoreboard_update":
             renderScoreboard(data.scoreboard || []);
+            state.currentMode = data.mode || state.currentMode;
             state.roomLocked = data.locked;
             state.scoreboard = data.scoreboard;
             if (data.victory && data.winner) {
@@ -68,19 +66,25 @@ ws.onmessage = (event) => {
         case "victory":
             handleVictory(data.winner, state.scoreboard || []);
             break;
+
+        // --- NOUVEAUX CAS POUR LE RESET ---
+        case "reset_update":
+            updateResetStatus(data);
+            break;
+
+        case "game_reset":
+            performGameReset(data);
+            break;
     }
 };
 
 // --- 3. Logique UI & Victoire ---
 function initGameUI(data) {
     state.gameType = data.game_type;
-    
-    // Titres
     const titles = { "cemantix": "Cémantix", "definition": "Dictionnario" };
     const titleEl = document.getElementById("game-title");
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
 
-    // Affichage conditionnel (Instructions vs Température)
     const instrBox = document.getElementById("game-instruction");
     const legendPanel = document.getElementById("legend-panel");
 
@@ -116,7 +120,7 @@ function handleVictory(winnerName, scoreboardData) {
 
     let scoreTableHtml = `
         <p style="font-size:1.2rem; margin-bottom:20px; color:white;">Le mot a été trouvé par <strong style="color:var(--accent)">${winnerName}</strong> !</p>
-        <div style="background:rgba(255,255,255,0.05); border-radius:8px; padding:15px; text-align:left;">
+        <div style="background:rgba(255,255,255,0.05); border-radius:8px; padding:15px; text-align:left; margin-bottom: 20px;">
     `;
     
     if (scoreboardData && scoreboardData.length > 0) {
@@ -131,22 +135,85 @@ function handleVictory(winnerName, scoreboardData) {
         });
     }
     scoreTableHtml += "</div>";
+    
+    // Zone pour afficher l'attente
+    scoreTableHtml += `<div id="reset-status-msg" style="color:var(--text-muted); font-style:italic; min-height: 20px;"></div>`;
 
     setTimeout(() => {
+        // On affiche la modale en mode victoire
         showModal("MISSION ACCOMPLIE", scoreTableHtml, true);
+        
+        // On reprogramme le bouton pour le reset
+        const closeBtn = document.getElementById('modal-close-btn');
+        if(closeBtn) {
+            closeBtn.textContent = "Rejouer la partie";
+            closeBtn.onclick = () => sendResetRequest(closeBtn);
+        }
     }, 1000);
 }
 
+// Envoyer la demande de reset
+async function sendResetRequest(btnElement) {
+    btnElement.disabled = true;
+    btnElement.textContent = "En attente des autres...";
+    
+    await fetch(`/rooms/${roomId}/reset`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ player_name: playerName })
+    });
+}
+
+// Mettre à jour le texte d'attente dans la modale
+function updateResetStatus(data) {
+    const statusDiv = document.getElementById('reset-status-msg');
+    if (statusDiv) {
+        statusDiv.innerHTML = `Joueurs prêts : <strong style="color:white">${data.current_votes}/${data.total_players}</strong><br>En attente de : ${data.waiting_for.join(', ')}`;
+    }
+}
+
+// Reset effectif du jeu
+function performGameReset(data) {
+    // 1. Fermer la modale
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) overlay.classList.remove('active');
+
+    // 2. Reset état local
+    state.entries = [];
+    state.locked = false;
+    state.roomLocked = false;
+    
+    // 3. Reset visuel
+    if (elements.history) elements.history.innerHTML = "";
+    if (elements.input) {
+        elements.input.value = "";
+        elements.input.focus();
+    }
+
+    // 4. Reset UI spécifique (nouvelle définition, etc)
+    initGameUI({ 
+        game_type: state.gameType, 
+        public_state: data.public_state 
+    });
+    
+    addHistoryMessage("🔄 Nouvelle partie commencée !");
+}
+
 // --- 4. Gestionnaire d'événement Formulaire ---
-// On vérifie que 'elements.form' existe avant d'ajouter l'écouteur
 if (elements.form) {
     elements.form.addEventListener("submit", async (e) => {
-        // EMPÊCHE LE RECHARGEMENT DE LA PAGE
+        // C'EST ICI LE FIX POUR LA TOUCHE ENTREE QUI NE MARCHE PAS
         e.preventDefault();
+        
+        // Si la modale est ouverte, on ne joue pas !
+        const overlay = document.getElementById('modal-overlay');
+        if (overlay && overlay.classList.contains('active')) {
+            return;
+        }
         
         if (state.locked) return;
         
-        const input = elements.input; // Utilise l'élément récupéré dans dom.js
+        const input = elements.input;
         const word = input.value.trim();
         
         if (!word) {
@@ -154,7 +221,6 @@ if (elements.form) {
             return;
         }
 
-        // UX : Vider et remettre le focus
         input.value = "";
         input.focus();
         
@@ -168,17 +234,11 @@ if (elements.form) {
             const data = await res.json();
             
             if (data.error) {
-                // MODIFICATION ICI :
-                // Si c'est juste un mot inconnu, on l'écrit discrètement
                 if (data.error === "unknown_word") {
                     addHistoryMessage("⚠️ " + data.message);
-                    
-                    // Optionnel : On peut faire vibrer l'input ou le colorer en rouge brièvement
                     elements.input.classList.add("error-shake");
                     setTimeout(() => elements.input.classList.remove("error-shake"), 500);
-                } 
-                // Pour les autres erreurs (Room fermée, bug serveur...), on garde la modale
-                else {
+                } else {
                     showModal("Erreur", data.message);
                 }
             }
@@ -186,6 +246,4 @@ if (elements.form) {
             console.error(err);
         }
     });
-} else {
-    console.error("ERREUR CRITIQUE : Le formulaire n'a pas été trouvé dans le DOM. Vérifiez les IDs.");
 }
