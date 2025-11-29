@@ -34,6 +34,8 @@ class GuessRequest(BaseModel):
     word: str
     player_name: str
 
+class ResetRequest(BaseModel):
+    player_name: str
 
 class RoomConnectionManager:
     def __init__(self):
@@ -131,6 +133,7 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
     }
 
 
+
 @app.get("/", response_class=HTMLResponse)
 def hub_page():
     with open("static/hub.html", "r", encoding="utf-8") as f:
@@ -199,6 +202,42 @@ async def guess(room_id: str, payload: GuessRequest):
         "mode": room.mode,
         "locked": room.locked,
     }
+
+@app.post("/rooms/{room_id}/reset")
+async def reset_room(room_id: str, payload: ResetRequest):
+    room = room_manager.get_room(room_id)
+    if not room:
+        return JSONResponse(status_code=404, content={"error": "room_not_found"})
+
+    # On enregistre le vote
+    all_ready = room.vote_reset(payload.player_name)
+
+    if all_ready:
+        # Tout le monde est prêt : on relance !
+        room.reset_game()
+        
+        # On récupère le nouvel état public
+        public_state = room.engine.get_public_state()
+        
+        await connections.broadcast(room_id, {
+            "type": "game_reset",
+            "public_state": public_state,
+            "mode": room.mode,
+            "scoreboard": build_scoreboard(room)
+        })
+        return {"status": "reset_done"}
+    else:
+        # On attend encore des joueurs
+        # On calcule qui on attend
+        waiting_for = [name for name in room.players if name not in room.reset_votes]
+        
+        await connections.broadcast(room_id, {
+            "type": "reset_update",
+            "current_votes": len(room.reset_votes),
+            "total_players": len(room.players),
+            "waiting_for": waiting_for
+        })
+        return {"status": "waiting"}
 
 
 @app.websocket("/rooms/{room_id}/ws")

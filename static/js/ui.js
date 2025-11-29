@@ -1,10 +1,8 @@
 import { elements } from "./dom.js";
 
-// --- Gestion des Messages Log ---
 export function addHistoryMessage(text) {
     if (!elements.messages) return;
     elements.messages.innerHTML = "";
-    
     const msg = document.createElement("div");
     msg.className = "log";
     msg.textContent = text;
@@ -16,7 +14,6 @@ export function setRoomInfo(text) {
     elements.roomInfo.textContent = text;
 }
 
-// --- NOUVEAU : Gestion des Modales ---
 export function showModal(title, contentHTML, isVictory = false) {
     const overlay = document.getElementById('modal-overlay');
     const titleEl = document.getElementById('modal-title');
@@ -27,13 +24,12 @@ export function showModal(title, contentHTML, isVictory = false) {
     if (!overlay) return;
 
     titleEl.textContent = title;
-    contentEl.innerHTML = contentHTML; // On autorise le HTML pour le tableau des scores
+    contentEl.innerHTML = contentHTML;
 
     if (isVictory) {
         iconEl.style.display = "block";
         iconEl.textContent = "🏆";
-        closeBtn.textContent = "Rejouer (Retour Hub)";
-        closeBtn.onclick = () => window.location.href = "/";
+        // Le comportement du bouton sera écrasé par handleVictory dans main.js
     } else {
         iconEl.style.display = "none";
         closeBtn.textContent = "Continuer";
@@ -48,16 +44,20 @@ export function closeModal() {
     if (overlay) overlay.classList.remove('active');
 }
 
+// --- FIX TOUCHE ENTREE ---
 document.addEventListener('keydown', (e) => {
     const overlay = document.getElementById('modal-overlay');
     
-    // Si la touche est Entrée ET que la modale est visible (classe 'active')
+    // Si Entrée est pressée ET que la modale est visible
     if (e.key === "Enter" && overlay && overlay.classList.contains('active')) {
-        e.preventDefault(); // Empêche d'écrire dans l'input derrière ou de re-soumettre
+        // On empêche absolument le formulaire derrière de s'activer
+        e.preventDefault(); 
+        e.stopPropagation(); 
         
-        // On déclenche le clic sur le bouton principal de la modale
-        // Cela exécutera soit closeModal(), soit la redirection en cas de victoire
         const closeBtn = document.getElementById('modal-close-btn');
-        if (closeBtn) closeBtn.click();
+        // On clique sur le bouton seulement s'il n'est pas désactivé (cas "En attente...")
+        if (closeBtn && !closeBtn.disabled) {
+            closeBtn.click();
+        }
     }
 });
