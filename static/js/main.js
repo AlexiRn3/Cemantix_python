@@ -194,7 +194,7 @@ function initGameUI(data) {
     state.gameType = data.game_type;
 
     // 2. Gestion du Titre
-    const titles = { "cemantix": "Cémantix", "definition": "Dictionnario", "intruder": "L'Intrus" };
+    const titles = { "cemantix": "Cémantix", "definition": "Dictionnario", "intruder": "L'Intrus", "hangman": "Pendu" };
     const titleEl = document.getElementById("game-title");
     const hangmanArea = document.getElementById("hangman-area");
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
