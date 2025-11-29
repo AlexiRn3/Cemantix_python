@@ -3,7 +3,9 @@ import { state } from "./state.js";
 import { addHistoryMessage, setRoomInfo, showModal } from "./ui.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti } from "./rendering.js";
 
-// --- 1. Initialisation ---
+// ... (Le début du fichier : Initialisation, WebSocket reste inchangé) ...
+// ... (Copiez le code existant jusqu'à handleVictory) ...
+
 const params = new URLSearchParams(window.location.search);
 const roomId = params.get("room");
 const playerName = params.get("player");
@@ -17,7 +19,6 @@ if(document.getElementById("display-room-id")) {
     document.getElementById("display-room-id").textContent = roomId;
 }
 
-// --- 2. WebSocket ---
 const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
 const ws = new WebSocket(wsUrl);
@@ -41,7 +42,6 @@ ws.onmessage = (event) => {
             state.roomLocked = data.locked;
             state.scoreboard = data.scoreboard;
             break;
-
         case "guess":
             addEntry({
                 word: data.word,
@@ -52,7 +52,6 @@ ws.onmessage = (event) => {
                 game_type: data.game_type
             });
             break;
-
         case "scoreboard_update":
             renderScoreboard(data.scoreboard || []);
             state.currentMode = data.mode || state.currentMode;
@@ -62,23 +61,18 @@ ws.onmessage = (event) => {
                 handleVictory(data.winner, data.scoreboard);
             }
             break;
-
         case "victory":
             handleVictory(data.winner, state.scoreboard || []);
             break;
-
-        // --- NOUVEAUX CAS POUR LE RESET ---
         case "reset_update":
             updateResetStatus(data);
             break;
-
         case "game_reset":
             performGameReset(data);
             break;
     }
 };
 
-// --- 3. Logique UI & Victoire ---
 function initGameUI(data) {
     state.gameType = data.game_type;
     const titles = { "cemantix": "Cémantix", "definition": "Dictionnario" };
@@ -112,6 +106,7 @@ function initGameUI(data) {
     }
 }
 
+// --- MODIFICATION MAJEURE ICI ---
 function handleVictory(winnerName, scoreboardData) {
     if (state.locked) return;
     state.locked = true;
@@ -136,18 +131,31 @@ function handleVictory(winnerName, scoreboardData) {
     }
     scoreTableHtml += "</div>";
     
-    // Zone pour afficher l'attente
-    scoreTableHtml += `<div id="reset-status-msg" style="color:var(--text-muted); font-style:italic; min-height: 20px;"></div>`;
+    // Zone pour le statut d'attente
+    scoreTableHtml += `<div id="reset-status-msg" style="color:var(--text-muted); font-style:italic; min-height: 20px; margin-bottom: 10px;"></div>`;
 
     setTimeout(() => {
-        // On affiche la modale en mode victoire
         showModal("MISSION ACCOMPLIE", scoreTableHtml, true);
         
-        // On reprogramme le bouton pour le reset
-        const closeBtn = document.getElementById('modal-close-btn');
-        if(closeBtn) {
-            closeBtn.textContent = "Rejouer la partie";
-            closeBtn.onclick = () => sendResetRequest(closeBtn);
+        // ON RÉGÉNÈRE COMPLÈTEMENT LES BOUTONS ICI
+        // Cela garantit qu'ils sont frais et non désactivés pour la nouvelle partie
+        const actionsDiv = document.getElementById('modal-actions');
+        if (actionsDiv) {
+            actionsDiv.innerHTML = `
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="btn-replay" class="btn">Rejouer la partie</button>
+                    <button id="btn-hub" class="btn btn-outline">Retour au Hub</button>
+                </div>
+            `;
+
+            // Attacher les écouteurs
+            document.getElementById('btn-replay').onclick = function() {
+                sendResetRequest(this);
+            };
+            
+            document.getElementById('btn-hub').onclick = function() {
+                window.location.href = "/";
+            };
         }
     }, 1000);
 }
@@ -155,7 +163,7 @@ function handleVictory(winnerName, scoreboardData) {
 // Envoyer la demande de reset
 async function sendResetRequest(btnElement) {
     btnElement.disabled = true;
-    btnElement.textContent = "En attente des autres...";
+    btnElement.textContent = "En attente...";
     
     await fetch(`/rooms/${roomId}/reset`, {
         method: 'POST',
@@ -164,7 +172,6 @@ async function sendResetRequest(btnElement) {
     });
 }
 
-// Mettre à jour le texte d'attente dans la modale
 function updateResetStatus(data) {
     const statusDiv = document.getElementById('reset-status-msg');
     if (statusDiv) {
@@ -172,7 +179,6 @@ function updateResetStatus(data) {
     }
 }
 
-// Reset effectif du jeu
 function performGameReset(data) {
     // 1. Fermer la modale
     const overlay = document.getElementById('modal-overlay');
@@ -190,7 +196,7 @@ function performGameReset(data) {
         elements.input.focus();
     }
 
-    // 4. Reset UI spécifique (nouvelle définition, etc)
+    // 4. Reset UI spécifique
     initGameUI({ 
         game_type: state.gameType, 
         public_state: data.public_state 
@@ -199,17 +205,14 @@ function performGameReset(data) {
     addHistoryMessage("🔄 Nouvelle partie commencée !");
 }
 
-// --- 4. Gestionnaire d'événement Formulaire ---
+// --- Gestionnaire Formulaire ---
 if (elements.form) {
     elements.form.addEventListener("submit", async (e) => {
-        // C'EST ICI LE FIX POUR LA TOUCHE ENTREE QUI NE MARCHE PAS
         e.preventDefault();
         
-        // Si la modale est ouverte, on ne joue pas !
+        // Empêche de jouer si une modale est ouverte
         const overlay = document.getElementById('modal-overlay');
-        if (overlay && overlay.classList.contains('active')) {
-            return;
-        }
+        if (overlay && overlay.classList.contains('active')) return;
         
         if (state.locked) return;
         

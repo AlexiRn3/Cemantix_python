@@ -19,7 +19,7 @@ export function showModal(title, contentHTML, isVictory = false) {
     const titleEl = document.getElementById('modal-title');
     const contentEl = document.getElementById('modal-content');
     const iconEl = document.getElementById('modal-icon');
-    const closeBtn = document.getElementById('modal-close-btn');
+    const actionsDiv = document.getElementById('modal-actions'); // On cible le conteneur
 
     if (!overlay) return;
 
@@ -29,11 +29,14 @@ export function showModal(title, contentHTML, isVictory = false) {
     if (isVictory) {
         iconEl.style.display = "block";
         iconEl.textContent = "🏆";
-        // Le comportement du bouton sera écrasé par handleVictory dans main.js
+        // NOTE : On laisse main.js gérer les boutons spécifiques de victoire
     } else {
         iconEl.style.display = "none";
-        closeBtn.textContent = "Continuer";
-        closeBtn.onclick = closeModal;
+        
+        // Pour une erreur standard, on remet proprement le bouton Fermer par défaut
+        // Cela "nettoie" les boutons Rejouer/Hub s'ils étaient là avant
+        actionsDiv.innerHTML = `<button id="modal-close-btn" class="btn">Fermer</button>`;
+        document.getElementById('modal-close-btn').onclick = closeModal;
     }
 
     overlay.classList.add('active');
@@ -48,16 +51,18 @@ export function closeModal() {
 document.addEventListener('keydown', (e) => {
     const overlay = document.getElementById('modal-overlay');
     
-    // Si Entrée est pressée ET que la modale est visible
     if (e.key === "Enter" && overlay && overlay.classList.contains('active')) {
-        // On empêche absolument le formulaire derrière de s'activer
         e.preventDefault(); 
         e.stopPropagation(); 
         
+        // On cherche d'abord le bouton rejouer, sinon le bouton fermer
+        const replayBtn = document.getElementById('btn-replay');
         const closeBtn = document.getElementById('modal-close-btn');
-        // On clique sur le bouton seulement s'il n'est pas désactivé (cas "En attente...")
-        if (closeBtn && !closeBtn.disabled) {
-            closeBtn.click();
+        
+        const targetBtn = replayBtn || closeBtn;
+
+        if (targetBtn && !targetBtn.disabled) {
+            targetBtn.click();
         }
     }
 });
