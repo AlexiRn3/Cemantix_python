@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 from typing import Dict, List, Any, Optional
+import time
 
 from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
@@ -28,6 +29,7 @@ class CreateRoomRequest(BaseModel):
     player_name: str
     mode: str = "coop"
     game_type: str = "cemantix"
+    duration: int = 0
 
 
 class GuessRequest(BaseModel):
@@ -90,6 +92,11 @@ def build_victory_message(room: RoomState, player_name: str):
 
 # Ajout du typage de retour explicite -> Dict[str, Any] pour corriger l'erreur Pylance
 def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any]:
+    if room.mode == "blitz" and room.end_time > 0:
+        if time.time() > room.end_time:
+            room.locked = True
+            return {"error": "time_up", "message": "Le temps est écoulé !"}
+
     if room.locked:
         return {"error": "room_locked", "message": "Cette room est verrouillée"}
 
@@ -106,14 +113,28 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
     # Enregistrement dans l'état de la room
     room.record_guess(word, player_name, similarity, temperature, feedback)
 
-    if victory:
-        if room.mode == "race" or room.mode == "coop":
-            room.locked = True
+    blitz_data = {}
 
-    # room_manager.persist_room(room.room_id) # Optionnel
+    if victory:
+        if room.mode == "blitz":
+            # En Blitz : On incrémente le score et on change de mot
+            room.team_score += 1
+            room.engine.next_word() 
+            
+            # ON STOCKE LES INFOS POUR LE PAYLOAD
+            blitz_data = {
+                "blitz_success": True,
+                "new_public_state": room.engine.get_public_state(),
+                "team_score": room.team_score
+            }
+        else:
+            # Mode Classique : On verrouille
+            if room.mode == "race" or room.mode == "coop":
+                room.locked = True
 
     progression = int(round(similarity * 1000)) if room.game_type == "cemantix" else 0
     
+    # ON INCLUT blitz_data DANS LE PAYLOAD DU WEBSOCKET
     guess_payload = {
         "type": "guess",
         "word": word,
@@ -122,14 +143,15 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "similarity": similarity,
         "progression": progression,
         "feedback": feedback,
-        "game_type": room.game_type
+        "game_type": room.game_type,
+        **blitz_data  # <--- C'EST ICI LA CLÉ : on fusionne les infos de victoire dans le message
     }
     
     return {
         "result": {**result, "progression": progression},
         "guess_payload": guess_payload,
         "scoreboard": build_scoreboard(room),
-        "victory": victory,
+        "victory": victory and room.mode != "blitz", # Victoire standard seulement si pas blitz
     }
 
 
@@ -152,8 +174,12 @@ def create_room(payload: CreateRoomRequest):
     if payload.game_type == "cemantix" and model is None:
         return JSONResponse(status_code=500, content={"message": "Le modèle Cémantix n'est pas chargé sur le serveur."})
 
-    mode = payload.mode if payload.mode in {"coop", "race"} else "coop"
+    mode = payload.mode if payload.mode in {"coop", "race", "blitz"} else "coop"
     room = room_manager.create_room(payload.game_type, mode, payload.player_name)
+    
+    if payload.mode == "blitz" and payload.duration > 0:
+        room.duration = payload.duration
+        room.end_time = time.time() + payload.duration
     
     return {
         "room_id": room.room_id, 
@@ -215,15 +241,23 @@ async def reset_room(room_id: str, payload: ResetRequest):
     if all_ready:
         # Tout le monde est prêt : on relance !
         room.reset_game()
+
+        # --- AJOUT BLITZ : On relance le chrono ---
+        if room.mode == "blitz" and room.duration > 0:
+            room.end_time = time.time() + room.duration
+            room.team_score = 0 # On remet le score d'équipe à 0
+        # ------------------------------------------
         
         # On récupère le nouvel état public
         public_state = room.engine.get_public_state()
         
-        await connections.broadcast(room_id, {
+        await connections.broadcast(room_id, 
+        {
             "type": "game_reset",
             "public_state": public_state,
             "mode": room.mode,
-            "scoreboard": build_scoreboard(room)
+            "scoreboard": build_scoreboard(room),
+            "end_time": room.end_time
         })
         return {"status": "reset_done"}
     else:
@@ -288,7 +322,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 "mode": room.mode,
                 "locked": room.locked,
                 "game_type": room.game_type,
-                "public_state": public_state
+                "public_state": public_state,
+                "end_time": room.end_time  # Pour le mode Blitz
             }
         )
         

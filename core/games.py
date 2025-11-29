@@ -17,6 +17,10 @@ class GameEngine(ABC):
     def get_public_state(self) -> Dict[str, Any]:
         """Retourne les infos statiques nécessaires au front (ex: la définition)"""
         pass
+    
+    def next_word(self):
+        """Passe au mot suivant (utilisé pour le mode Blitz)"""
+        pass
 
 # --- Cemantix Implementation ---
 class CemantixEngine(GameEngine):
@@ -72,6 +76,9 @@ class DefinitionEngine(GameEngine):
     def new_game(self):
         self.target = random.choice(self.dictionary)
         print(f"[DEF] Mot cible : {self.target['word']}")
+
+    def next_word(self):
+        self.new_game()
 
     def guess(self, word: str) -> Dict[str, Any]:
         if not self.target:

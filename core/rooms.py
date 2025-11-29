@@ -68,6 +68,10 @@ class RoomState:
     players: Dict[str, PlayerStats] = field(default_factory=dict)
     history: List[GuessEntry] = field(default_factory=list)
 
+    end_time: float = 0.0
+    team_score: int = 0
+    duration: int = 0
+
     reset_votes: Set[str] = field(default_factory=set)
 
     def add_player(self, player_name: str):

@@ -39,6 +39,10 @@ ws.onmessage = (event) => {
             renderHistory(data.history || []);
             renderScoreboard(data.scoreboard || []);
             state.currentMode = data.mode;
+            if (data.mode === "blitz" && data.end_time) {
+                // On lance le timer avec l'heure de fin reçue du serveur
+                startTimer(data.end_time);
+            }
             state.roomLocked = data.locked;
             state.scoreboard = data.scoreboard;
             break;
@@ -69,7 +73,30 @@ ws.onmessage = (event) => {
             break;
         case "game_reset":
             performGameReset(data);
+            if (data.mode === "blitz" && data.end_time) {
+                startTimer(data.end_time);
+                document.getElementById('score-display').textContent = "0"; // Reset visuel du score
+            }
             break;
+    }
+
+        if (data.blitz_success) {
+        // 1. Animation confetti petite
+        //triggerConfetti(); 
+        // 2. Mettre à jour le score
+        document.getElementById('score-display').textContent = data.team_score;
+        
+        // 3. Mettre à jour la définition (UI)
+        initGameUI({ 
+            game_type: 'definition', 
+            public_state: data.new_public_state 
+        });
+        
+        // 4. Vider l'historique visuel pour le nouveau mot
+        state.entries = [];
+        renderHistory();
+        
+        addHistoryMessage(`✨ Mot trouvé ! Au suivant !`, 2000);
     }
 };
 
@@ -252,4 +279,58 @@ if (elements.form) {
             console.error(err);
         }
     });
+}
+
+function startTimer(endTime) {
+    const timerEl = document.getElementById('timer-display');
+    document.getElementById('blitz-panel').style.display = 'block';
+
+    const updateTimer = () => {
+        const now = Date.now() / 1000;
+        const diff = endTime - now;
+
+        if (diff <= 0) {
+            clearInterval(interval);
+            timerEl.textContent = "00:00";
+            
+            // --- MODIFICATION ICI : Contenu de la modale de fin ---
+            const score = document.getElementById('score-display').textContent;
+            
+            // 1. On affiche la modale
+            showModal("TEMPS ÉCOULÉ", `
+                <div style="margin-bottom: 20px;">
+                    C'est terminé !<br>
+                    Score final : <strong style="color:var(--success); font-size:1.5rem;">${score}</strong> mots.
+                </div>
+            `);
+
+            // 2. On injecte les boutons d'action spécifiques
+            const actionsDiv = document.getElementById('modal-actions');
+            actionsDiv.innerHTML = `
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="btn-blitz-replay" class="btn">Rejouer</button>
+                    <button id="btn-hub-return" class="btn btn-outline">Retour au Hub</button>
+                </div>
+            `;
+
+            // 3. On attache les actions
+            document.getElementById('btn-hub-return').onclick = () => window.location.href = "/";
+            
+            document.getElementById('btn-blitz-replay').onclick = function() {
+                // On réutilise la logique de reset existante
+                this.disabled = true;
+                this.textContent = "Chargement...";
+                sendResetRequest(this);
+            };
+            // ------------------------------------------------------
+
+        } else {
+            const m = Math.floor(diff / 60);
+            const s = Math.floor(diff % 60);
+            timerEl.textContent = `${m}:${s < 10 ? '0'+s : s}`;
+        }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
 }
