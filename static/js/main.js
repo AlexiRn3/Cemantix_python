@@ -60,23 +60,40 @@ ws.onmessage = (event) => {
                 if (scoreEl) scoreEl.textContent = data.team_score;
             }
             if (data.game_type === "hangman") {
+                 // 1. Mettre à jour le mot masqué
                  const wordEl = document.getElementById("hangman-word");
-                 if(wordEl && data.masked_word) wordEl.textContent = data.masked_word;
-                 
-                 // Mise à jour de la touche visuelle
-                 const btn = document.getElementById(`key-${data.word.toUpperCase()}`);
-                 if(btn) {
-                     btn.disabled = true;
-                     btn.style.backgroundColor = data.similarity > 0 ? "var(--success)" : "#eee";
-                     btn.style.color = data.similarity > 0 ? "white" : "#aaa";
-                     btn.style.borderColor = "transparent";
+                 // Le backend renvoie 'masked_word' dans le payload grâce au fix précédent
+                 if(wordEl && data.masked_word) {
+                     wordEl.textContent = data.masked_word;
                  }
                  
-                 // Mise à jour batterie
+                 // 2. Mettre à jour la touche du clavier
+                 // data.word contient la lettre jouée (ex: "A")
+                 const letterPlayed = data.word.toUpperCase();
+                 const btn = document.getElementById(`key-${letterPlayed}`);
+                 
+                 if(btn) {
+                     btn.disabled = true;
+                     // Si similarity > 0 (ou is_correct), c'est une bonne lettre -> Vert
+                     // Sinon -> Gris/Rouge
+                     if (data.similarity > 0 || data.is_correct) {
+                         btn.className = "key-btn correct";
+                     } else {
+                         btn.className = "key-btn wrong";
+                     }
+                 }
+                 
+                 // 3. Mettre à jour la batterie
                  const bar = document.getElementById("hangman-battery");
-                 if(bar) {
-                     bar.style.width = `${data.lives * (100/7)}%`; // ou data.temperature
-                     if(data.lives < 3) bar.style.background = "var(--accent)";
+                 if(bar && data.lives !== undefined) {
+                     // On utilise data.lives renvoyé par le backend
+                     // Max lives est par défaut 7 (hardcodé ici ou renvoyé par backend si tu veux être précis)
+                     const maxLives = 7; 
+                     const pct = Math.max(0, (data.lives / maxLives) * 100);
+                     bar.style.width = `${pct}%`;
+                     
+                     if (pct < 30) bar.classList.add("battery-low");
+                     else bar.classList.remove("battery-low");
                  }
             }
             break;
@@ -492,61 +509,99 @@ function startTimer(endTime) {
 }
 
 function renderHangmanUI(state) {
-    // 1. Afficher le mot
-    document.getElementById("hangman-word").textContent = state.masked_word;
+    // 1. Mise à jour du mot masqué
+    const wordEl = document.getElementById("hangman-word");
+    if (wordEl && state.masked_word) {
+        // Ajoute des espaces pour la lisibilité si le backend ne le fait pas
+        wordEl.textContent = state.masked_word; 
+    }
 
-    // 2. Barre de vie (Batterie)
-    const pct = (state.lives / state.max_lives) * 100;
+    // 2. Mise à jour de la barre de batterie
     const bar = document.getElementById("hangman-battery");
-    bar.style.width = `${pct}%`;
-    // Changement de couleur selon la vie restante
-    if(pct < 30) bar.style.background = "var(--accent)"; // Rouge
-    else if(pct < 60) bar.style.background = "var(--warning)"; // Jaune
-    else bar.style.background = "var(--success)"; // Vert
+    if (bar) {
+        // Calcul du pourcentage de vie
+        const pct = Math.max(0, (state.lives / state.max_lives) * 100);
+        bar.style.width = `${pct}%`;
 
-    // 3. Clavier (si vide, on le génère)
+        // Changement de couleur si critique (< 30%)
+        if (pct < 30) {
+            bar.classList.add("battery-low");
+        } else {
+            bar.classList.remove("battery-low");
+        }
+    }
+
+    // 3. Génération du clavier (seulement si vide)
     const kb = document.getElementById("hangman-keyboard");
-    if (kb.innerHTML === "") {
+    if (kb && kb.innerHTML === "") {
         const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         for (let letter of alphabet) {
             const btn = document.createElement("button");
             btn.textContent = letter;
-            btn.className = "btn btn-outline"; // Réutilisation style bouton
-            btn.style.padding = "10px 15px"; // Plus petit
-            btn.style.minWidth = "45px";
+            btn.className = "key-btn"; // Nouvelle classe CSS
             btn.id = `key-${letter}`;
+            
+            // L'événement clic déclenche l'envoi
             btn.onclick = () => submitHangmanGuess(letter, btn);
+            
             kb.appendChild(btn);
         }
     }
 
-    // 4. Mettre à jour les touches déjà utilisées (si reconnexion ou refresh)
+    // 4. Mise à jour de l'état des touches (pour les reconnexions ou refresh)
     if (state.used_letters) {
-        state.used_letters.forEach(l => {
-            const btn = document.getElementById(`key-${l}`);
-            if (btn) btn.disabled = true;
+        state.used_letters.forEach(letter => {
+            const btn = document.getElementById(`key-${letter}`);
+            if (btn) {
+                btn.disabled = true;
+                // On ne sait pas ici si c'était correct ou faux (le serveur ne renvoie pas le détail dans public_state pour l'instant)
+                // Donc on le grise par défaut. Le WebSocket en temps réel gérera la couleur précise.
+                btn.classList.add("wrong"); 
+            }
         });
+        
+        // Petite astuce : on peut déduire les lettres correctes en regardant le mot masqué !
+        if (state.masked_word) {
+            const revealedLetters = new Set(state.masked_word.replace(/_/g, '').replace(/ /g, '').split(''));
+            revealedLetters.forEach(letter => {
+                const btn = document.getElementById(`key-${letter}`);
+                if (btn) {
+                    btn.className = "key-btn correct"; // Force le vert pour les lettres visibles
+                    btn.disabled = true;
+                }
+            });
+        }
     }
 }
 
-async function submitHangmanGuess(letter, btn) {
+async function submitHangmanGuess(letter, btnElement) {
     if (state.locked) return;
-    btn.disabled = true;
+
+    // Feedback visuel immédiat (Optimistic UI)
+    btnElement.disabled = true;
 
     try {
+        // Note: on envoie bien { word: letter } pour correspondre à la signature backend
         const res = await fetch(`/rooms/${roomId}/guess`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ word: letter, player_name: playerName })
         });
+        
         const data = await res.json();
         
-        if (data.error) return; // Gérer erreur si besoin
-
-        // Si le guess n'est pas correct (victoire ou bon mot), feedback visuel
-        // Note: Le WebSocket fera la mise à jour globale, mais on peut faire un feedback local immédiat
-        if (data.feedback && !data.result.is_correct) {
-             // On pourrait faire trembler la barre de vie ici
+        if (data.error) {
+            // Si erreur (ex: lettre déjà jouée), on réactive
+            btnElement.disabled = false;
+            // showModal("Oups", data.message); // Optionnel
+            return;
         }
-    } catch (e) { console.error(e); }
+
+        // Note : La mise à jour finale de l'UI se fera via le WebSocket (ws.onmessage)
+        // pour que tous les joueurs voient l'action en même temps.
+
+    } catch (err) {
+        console.error("Erreur réseau:", err);
+        btnElement.disabled = false;
+    }
 }
