@@ -1,3 +1,9 @@
+import { elements } from "./dom.js";
+import { state } from "./state.js";
+import { addHistoryMessage, setRoomInfo, showModal } from "./ui.js"; // Import showModal
+import { addEntry, renderHistory, renderScoreboard, triggerConfetti } from "./rendering.js";
+import { openWebsocket } from "./websocket.js";
+
 // --- Utils ---
 const params = new URLSearchParams(window.location.search);
 const roomId = params.get("room");
@@ -25,15 +31,54 @@ ws.onmessage = (event) => {
     else if (data.type === "guess") {
         addHistoryEntry(data);
     }
-    else if (data.type === "scoreboard_update") {
-        renderScoreboard(data.scoreboard);
-    }
-    else if (data.type === "victory") {
-        document.getElementById("messages").textContent = `🎉 ${data.winner} a trouvé le mot !`;
-        confetti();
-        gameState.locked = true;
-    }
+    if (data.type === "scoreboard_update") {
+            renderScoreboard(data.scoreboard || []);
+            state.roomLocked = data.locked;
+            
+            // Si victoire détectée via scoreboard update (cas broadcast)
+            if (data.victory && data.winner) {
+                handleVictory(data.winner, data.scoreboard);
+            }
+        }
+        else if (data.type === "victory") {
+            // Cas direct victoire
+            handleVictory(data.winner, state.scoreboard || []); // on utilise le state si pas renvoyé
+        }
+        // GESTION ERREUR POPUP
+        else if (data.error) {
+            showModal("Erreur", data.message || "Une erreur est survenue");
+        }
 };
+
+function handleVictory(winnerName, scoreboardData) {
+    if (gameState.locked) return; // Évite les doublons
+    gameState.locked = true;
+
+    // 1. Confettis
+    triggerConfetti();
+
+    // 2. Construction du tableau HTML pour la modale
+    let scoreTableHtml = `
+        <p>Le mot a été trouvé par <strong>${winnerName}</strong> !</p>
+        <div style="background:rgba(255,255,255,0.1); border-radius:8px; padding:10px; margin-top:15px; text-align:left;">
+    `;
+    
+    scoreboardData.forEach((p, index) => {
+        const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
+        scoreTableHtml += `
+            <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05)">
+                <span>${medal} ${p.player_name}</span>
+                <span>${p.attempts} essais</span>
+            </div>
+        `;
+    });
+    scoreTableHtml += "</div>";
+
+    // 3. Affichage Modale
+    setTimeout(() => {
+        showModal("Victoire !", scoreTableHtml, true);
+    }, 800); // Petit délai pour laisser les confettis éclater avant le popup
+}
 
 // --- UI Logic ---
 function initGameUI(data) {
@@ -122,13 +167,23 @@ document.getElementById("guess-form").addEventListener("submit", async (e) => {
     
     const input = document.getElementById("word-input");
     const word = input.value.trim();
-    if (!word) return;
+    
+    // Validation Input par Popup
+    if (!word) {
+        showModal("Hey !", "Il faut écrire un mot avant d'essayer.");
+        return;
+    }
 
     input.value = "";
     
-    await fetch(`/rooms/${roomId}/guess`, {
+    const res = await fetch(`/rooms/${roomId}/guess`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ word, player_name: playerName })
     });
+    
+    const data = await res.json();
+    if (data.error) {
+        showModal("Oups", data.message);
+    }
 });

@@ -63,5 +63,49 @@ document.getElementById('btn-join').onclick = () => {
 };
 </script>
 
+<div id="modal-overlay" class="modal-overlay">
+    <div class="modal-box">
+        <div id="modal-title" class="modal-title">Titre</div>
+        <div id="modal-content" class="modal-content">Contenu</div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal()">Compris</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Logique Modale pour le Hub
+function showModal(title, message) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-content').textContent = message;
+    document.getElementById('modal-overlay').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('active');
+}
+
+// Mise à jour de createGame pour utiliser la modale
+async function createGame(type) {
+    const name = document.getElementById('player-name').value;
+    if(!name) return showModal("Oups !", "Il faut choisir un pseudo avant de jouer !"); // Remplacement de l'alert
+    
+    const res = await fetch('/rooms', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ player_name: name, game_type: type, mode: 'coop' })
+    });
+    const data = await res.json();
+    window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(name)}`;
+}
+
+document.getElementById('btn-join').onclick = () => {
+    const name = document.getElementById('player-name').value;
+    const room = document.getElementById('room-id').value;
+    if(!name || !room) return showModal("Information manquante", "Le pseudo et l'ID de room sont requis.");
+    window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
+};
+</script>
+
 </body>
 </html>
