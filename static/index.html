@@ -2,46 +2,44 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>En Jeu</title>
+    <title>Interface de Jeu</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-<nav style="padding: 20px;">
-    <a href="/" style="color: white; text-decoration: none;">&larr; Retour au Hub</a>
-</nav>
-
 <div class="container">
+    <nav style="margin-bottom: 40px;">
+        <a href="/" style="font-family: var(--font-heading); font-weight: 700; font-size: 1.2rem;">&larr; ARCADE HUB</a>
+    </nav>
+
     <div class="game-header">
-        <h1 id="game-title">Chargement...</h1>
-        <div id="room-badge" style="display:inline-block; background:rgba(255,255,255,0.1); padding: 5px 10px; border-radius:20px; font-size:0.9rem;">
-            Room ID: <span id="display-room-id">...</span>
-        </div>
+        <h1 id="game-title">Initialisation...</h1>
+        <div id="room-badge">ID: <span id="display-room-id">...</span></div>
     </div>
 
     <div id="game-instruction" class="game-instruction-box" style="display:none">
         <p class="def-text" id="definition-text"></p>
-        <p id="hint-text" style="margin-top:10px; opacity:0.7"></p>
+        <p id="hint-text" style="margin-top:15px; opacity:0.6; font-family: var(--font-heading);"></p>
     </div>
 
     <div class="game-layout">
         
         <div class="panel">
-            <h3>Joueurs</h3>
+            <h3>Participants</h3>
             <div id="scoreboard"></div>
         </div>
 
         <div class="game-area">
             <form id="guess-form" class="guess-form">
-                <input type="text" id="word-input" placeholder="Tapez votre mot..." autocomplete="off" autofocus>
-                <button type="submit" class="btn">Essayer</button>
+                <input type="text" id="word-input" placeholder="Entrez un mot..." autocomplete="off" autofocus>
+                <button type="submit" class="btn">Envoyer</button>
             </form>
-            <div id="messages" style="margin-bottom: 15px; min-height: 20px; color: var(--accent);"></div>
+            <div id="messages" style="margin-bottom: 20px; min-height: 20px; color: var(--accent);"></div>
             <div id="history" class="history-list"></div>
         </div>
 
         <div class="panel" id="legend-panel">
-            <h3>Légende</h3>
+            <h3>Calibration</h3>
             <div id="legend-content"></div>
         </div>
     </div>
@@ -49,7 +47,7 @@
 
 <div id="modal-overlay" class="modal-overlay">
     <div class="modal-box">
-        <div id="modal-icon" class="winner-badge" style="display:none">🏆</div>
+        <div id="modal-icon" class="winner-badge" style="display:none; color: var(--success);">✦</div>
         <div id="modal-title" class="modal-title"></div>
         <div id="modal-content" class="modal-content"></div>
         <div class="modal-actions" id="modal-actions">

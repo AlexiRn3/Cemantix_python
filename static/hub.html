@@ -9,86 +9,62 @@
 
 <div class="container">
     <header class="hero">
-        <h1>Arcade Hub</h1>
-        <p>Rejoignez vos amis dans des défis de mots et de culture.</p>
+        <p class="eyebrow" style="color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 10px;">Plateforme de Jeux</p>
+        <h1>ARCADE HUB.</h1>
+        <p>Une collection minimaliste de jeux de mots et de sémantique. Connectez-vous, choisissez votre défi et jouez en temps réel.</p>
+        
+        <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 20px; max-width: 700px;">
+            <input type="text" id="player-name" placeholder="Votre Pseudo *" />
+            <input type="text" id="room-id" placeholder="Code Room (optionnel)" />
+            <button id="btn-join" class="btn btn-outline">Rejoindre</button>
+        </div>
     </header>
-
-    <div class="panel" style="max-width: 600px; margin: 0 auto 40px;">
-        <h2 style="margin-top:0">Initialisation</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-            <input type="text" id="player-name" placeholder="Votre Pseudo" />
-            <input type="text" id="room-id" placeholder="Code Room (si connexion)" />
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button id="btn-join" class="btn btn-outline" style="flex:1">Rejoindre une Room</button>
-        </div>
-    </div>
 
     <div class="games-grid">
         <article class="game-card">
-            <div class="game-icon">🌡️</div>
-            <h3>Cémantix</h3>
-            <p>Le classique. Trouvez le mot caché grâce à la similarité sémantique et la température.</p>
-            <button class="btn" onclick="createGame('cemantix')">Créer une partie</button>
+            <div>
+                <div class="game-icon" style="color: #ff3c00;">✦</div>
+                <h3>Cémantix</h3>
+                <p>Le classique. Trouvez le mot caché grâce à la proximité sémantique. Un algorithme de NLP vous guide vers la victoire.</p>
+            </div>
+            <button class="btn" onclick="createGame('cemantix')">Lancer le protocole</button>
         </article>
 
         <article class="game-card">
-            <div class="game-icon">📚</div>
-            <h3>Dictionnario</h3>
-            <p>Devinez le mot à partir de sa définition. Rapide, efficace et culturel.</p>
-            <button class="btn" onclick="createGame('definition')">Créer une partie</button>
+            <div>
+                <div class="game-icon" style="color: #00e054;">¶</div>
+                <h3>Dictionnario</h3>
+                <p>Déduction pure. Analysez la définition, comptez les lettres et trouvez le mot exact le plus rapidement possible.</p>
+            </div>
+            <button class="btn" onclick="createGame('definition')">Lancer le protocole</button>
         </article>
     </div>
 </div>
-
-<script>
-async function createGame(type) {
-    const name = document.getElementById('player-name').value;
-    if(!name) return alert("Pseudo requis !");
-    
-    const res = await fetch('/rooms', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ player_name: name, game_type: type, mode: 'coop' })
-    });
-    const data = await res.json();
-    window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(name)}`;
-}
-
-document.getElementById('btn-join').onclick = () => {
-    const name = document.getElementById('player-name').value;
-    const room = document.getElementById('room-id').value;
-    if(!name || !room) return alert("Pseudo et Room ID requis !");
-    window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
-};
-</script>
 
 <div id="modal-overlay" class="modal-overlay">
     <div class="modal-box">
         <div id="modal-title" class="modal-title">Titre</div>
         <div id="modal-content" class="modal-content">Contenu</div>
         <div class="modal-actions">
-            <button class="btn" onclick="closeModal()">Compris</button>
+            <button class="btn" onclick="closeModal()">Fermer</button>
         </div>
     </div>
 </div>
 
 <script>
-// Logique Modale pour le Hub
+// Logique Modale
 function showModal(title, message) {
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-content').textContent = message;
     document.getElementById('modal-overlay').classList.add('active');
 }
-
 function closeModal() {
     document.getElementById('modal-overlay').classList.remove('active');
 }
 
-// Mise à jour de createGame pour utiliser la modale
 async function createGame(type) {
     const name = document.getElementById('player-name').value;
-    if(!name) return showModal("Oups !", "Il faut choisir un pseudo avant de jouer !"); // Remplacement de l'alert
+    if(!name) return showModal("Pseudo Requis", "Identifiez-vous avant de commencer une session.");
     
     const res = await fetch('/rooms', {
         method: 'POST',
@@ -102,7 +78,7 @@ async function createGame(type) {
 document.getElementById('btn-join').onclick = () => {
     const name = document.getElementById('player-name').value;
     const room = document.getElementById('room-id').value;
-    if(!name || !room) return showModal("Information manquante", "Le pseudo et l'ID de room sont requis.");
+    if(!name || !room) return showModal("Données Manquantes", "Le pseudo et l'ID de room sont nécessaires pour la synchronisation.");
     window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
 };
 </script>
