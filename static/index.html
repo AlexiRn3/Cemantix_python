@@ -1,50 +1,103 @@
 <!DOCTYPE html>
-<html lang="fr" xmlns="http://www.w3.org/1999/html">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <title>Cémantix — Version Python</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-
 <body>
 
-<div id="legend-panel" class="legend">
-    <h2>Températures</h2>
-    <p>Correspondance des degrés :</p>
+<nav class="top-nav">
+    <a class="nav-link nav-link-active" href="/">Cémantix</a>
+    <a class="nav-link" href="/hub">Hub</a>
+</nav>
+<header class="hub-hero">
+    <div class="hub-title">
+        <p class="eyebrow">Hub de jeux</p>
+        <h1>Choisissez votre défi</h1>
+        <p class="lede">Centralisez vos parties en un seul endroit : chaque jeu aura son propre espace ici. En attendant de nouveaux titres, découvrez pourquoi Cémantix reste un excellent choix.</p>
+    </div>
+    <div class="game-card">
+        <div class="card-header">
+            <div>
+                <p class="eyebrow">Disponible</p>
+                <h2>Cémantix</h2>
+            </div>
+            <span class="badge">Jeu de mots</span>
+        </div>
+        <ul class="card-list">
+            <li>• Parties coop ou course pour choisir votre rythme.</li>
+            <li>• Scoreboard en temps réel pour suivre les progrès de chacun.</li>
+            <li>• Indice thermique sur chaque mot pour guider vos tentatives.</li>
+        </ul>
+        <p class="cta-text">Rejoignez une room ou créez-en une pour lancer la partie.</p>
+    </div>
+</header>
 
-    <table class="legend-table">
-        <tr>
-            <th>‰</th>
-            <th>Thermomètre</th>
-            <th>°C</th>
-        </tr>
+<div class="layout">
 
-        <tr><td>1000</td><td>💥</td><td>100,00</td></tr>
-        <tr><td>999</td><td>🥵</td><td>54,44</td></tr>
-        <tr><td>990</td><td>🔥</td><td>43,00</td></tr>
-        <tr><td>900</td><td>🌡️</td><td>28,86</td></tr>
-        <tr><td>1</td><td>😎</td><td>17,12</td></tr>
-        <tr><td>0</td><td>🧊</td><td>0,00</td></tr>
-        <tr><td>-1</td><td>❄️</td><td>-100,00</td></tr>
-    </table>
-</div>
+    <!-- COLONNE GAUCHE : TABLEAU -->
+    <div id="legend-panel" class="legend">
+        <h2>Températures</h2>
+        <p>Correspondance des degrés :</p>
 
-<div id="container">
-    <h1>Cémantix</h1>
+        <table class="legend-table">
+            <tr><th>‰</th><th>Thermo</th><th>°C</th></tr>
+            <tr><td>1000</td><td>💥</td><td>100,00</td></tr>
+            <tr><td>999</td><td>🥵</td><td>54,44</td></tr>
+            <tr><td>990</td><td>🔥</td><td>43,00</td></tr>
+            <tr><td>900</td><td>🌡️</td><td>28,86</td></tr>
+            <tr><td>1</td><td>😎</td><td>17,12</td></tr>
+            <tr><td>0</td><td>🧊</td><td>0,00</td></tr>
+            <tr><td>-1</td><td>❄️</td><td>-100,00</td></tr>
+        </table>
+    </div>
 
-    <form id="form">
-        <input id="word" type="text" placeholder="Tapez un mot..." autofocus>
-        <button type="submit">Tester</button>
-    </form>
-     <div id="messages" class="messages"></div>
+    <!-- COLONNE CENTRALE : LE JEU -->
+    <div id="container" class="game-area">
 
-    <div id="history"></div>
+        <h1>Cémantix</h1>
+
+        <div class="room-panel">
+            <div class="room-form">
+                <label>Votre pseudo
+                    <input id="player-name" type="text" placeholder="Choisissez un pseudo">
+                </label>
+                <label>Mode
+                    <select id="mode-select">
+                        <option value="coop">Coop</option>
+                        <option value="race">Course</option>
+                    </select>
+                </label>
+                <label>ID de room
+                    <input id="room-id-input" type="text" placeholder="Laisser vide pour créer">
+                </label>
+            </div>
+            <div class="room-actions">
+                <button id="create-room" type="button">Créer une room</button>
+                <button id="join-room" type="button">Rejoindre</button>
+            </div>
+            <div id="room-info" class="room-info"></div>
+        </div>
+
+        <form id="form">
+            <input id="word" type="text" placeholder="Tapez un mot..." autofocus>
+            <button type="submit">Tester</button>
+        </form>
+
+        <div id="messages" class="messages"></div>
+
+        <div id="history"></div>
+    </div>
+
+    <div class="scoreboard-panel">
+        <h2>Scoreboard</h2>
+        <div id="scoreboard"></div>
+    </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-<script src="/static/script.js"></script>
-
+<script type="module" src="/static/js/main.js"></script>
 
 </body>
-</html>
