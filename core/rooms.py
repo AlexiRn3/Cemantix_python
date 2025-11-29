@@ -7,6 +7,15 @@ from typing import Dict, List, Optional, Any, Set
 from core.games import CemantixEngine, DefinitionEngine, GameEngine, IntruderEngine, HangmanEngine
 
 @dataclass
+class ChatMessage:
+    player_name: str
+    content: str
+    timestamp: float = 0.0 # On pourrait mettre time.time()
+
+    def to_dict(self):
+        return {"player_name": self.player_name, "content": self.content}
+
+@dataclass
 class PlayerStats:
     attempts: int = 0
     best_similarity: float = 0.0
@@ -73,6 +82,13 @@ class RoomState:
     duration: int = 0
 
     reset_votes: Set[str] = field(default_factory=set)
+    chat_history: List[ChatMessage] = field(default_factory=list)
+
+    def add_chat_message(self, player_name: str, content: str):
+        self.chat_history.append(ChatMessage(player_name, content))
+        # On garde seulement les 50 derniers messages pour éviter de saturer la mémoire
+        if len(self.chat_history) > 50:
+            self.chat_history.pop(0)
 
     def add_player(self, player_name: str):
         if player_name not in self.players:
@@ -105,14 +121,18 @@ class RoomState:
     # AJOUT : Réinitialisation de la partie
     def reset_game(self):
         """Relance la partie"""
-        self.engine.new_game()
+        
+        # MODIFICATION : Si c'est le mode daily, on garde le mot du jour
+        if self.mode == "daily" and isinstance(self.engine, CemantixEngine):
+             # On réutilise la même seed basée sur la date
+             from datetime import date
+             self.engine.new_game(custom_seed=date.today().isoformat())
+        else:
+             self.engine.new_game()
+             
         self.history.clear()
         self.reset_votes.clear()
         self.locked = False
-        # On remet les stats des joueurs à zéro pour la nouvelle partie
-        for p in self.players.values():
-            p.attempts = 0
-            p.best_similarity = 0.0
 
     def to_dict(self):
         return {
@@ -122,6 +142,7 @@ class RoomState:
             "locked": self.locked,
             "players": {name: stats.to_dict() for name, stats in self.players.items()},
             "history": [entry.to_dict() for entry in self.history],
+            "chat_history": [msg.to_dict() for msg in self.chat_history]
         }
 
 class RoomManager:

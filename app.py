@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 from typing import Dict, List, Any, Optional
 import time
+from datetime import date
 
 from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
@@ -200,7 +201,7 @@ def create_room(payload: CreateRoomRequest):
     if payload.game_type == "cemantix" and model is None:
         return JSONResponse(status_code=500, content={"message": "Le modèle Cémantix n'est pas chargé sur le serveur."})
 
-    mode = payload.mode if payload.mode in {"coop", "race", "blitz"} else "coop"
+    mode = payload.mode if payload.mode in {"coop", "race", "blitz", "daily"} else "coop"
     room = room_manager.create_room(payload.game_type, mode, payload.player_name)
     
     if payload.mode == "blitz" and payload.duration > 0:
@@ -349,11 +350,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 "locked": room.locked,
                 "game_type": room.game_type,
                 "public_state": public_state,
-                "end_time": room.end_time  # Pour le mode Blitz
+                "end_time": room.end_time
             }
         )
         
-        # On notifie les autres qu'un joueur est là (via update scoreboard)
         await connections.broadcast(room_id, {
             "type": "scoreboard_update",
             "scoreboard": build_scoreboard(room),
@@ -362,13 +362,20 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             "victory": False,
             "winner": None
         })
-
-        # Boucle principale : on garde la connexion ouverte
         while True:
-            # On ignore les messages entrants car tout passe par l'API REST /guess
-            # Mais on doit garder le socket ouvert pour recevoir les broadcast
-            await websocket.receive_text()
+            data = await websocket.receive_json()
             
+            if data.get("type") == "chat":
+                content = data.get("content", "").strip()
+                if content:
+                    room.add_chat_message(player_name, content)
+                    # On diffuse le message à tout le monde
+                    await connections.broadcast(room_id, {
+                        "type": "chat_message",
+                        "player_name": player_name,
+                        "content": content
+                    })
+
     except WebSocketDisconnect:
         connections.disconnect(room_id, websocket)
     except Exception:

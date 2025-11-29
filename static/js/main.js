@@ -32,42 +32,94 @@ function updateSessionUI() {
 
 // Fonction globale pour ouvrir la modale de connexion
 window.openLoginModal = function() {
-    const content = `
-        <div style="margin-bottom: 20px;">
-            <p>Choisissez votre pseudo pour cette session.</p>
-            <input type="text" id="login-pseudo" value="${currentUser}" placeholder="Votre Pseudo..." style="margin-top:15px; text-align:center;">
-        </div>
-    `;
-    
+    const isInGame = window.location.pathname === "/game";
     const overlay = document.getElementById('modal-overlay');
     const titleEl = document.getElementById('modal-title');
     const contentEl = document.getElementById('modal-content');
-    
-    // CORRECTION ICI : On cherche par ID OU par classe pour être sûr de le trouver
     const actionsEl = document.getElementById('modal-actions') || document.querySelector('.modal-actions');
+
+    if (!overlay || !actionsEl) return;
+
+    // Contenu différent selon si on est en jeu ou sur le Hub
+    let htmlContent = '';
+    let buttonsHtml = '';
+
+    if (isInGame) {
+        // --- MODE JEU : Modification bloquée ---
+        htmlContent = `
+            <div style="margin-bottom: 20px;">
+                <p>Vous êtes connecté en tant que :</p>
+                <input type="text" value="${currentUser}" disabled style="margin-top:15px; text-align:center; opacity:0.7;">
+                <p class="locked-message">🔒 Impossible de changer de pseudo pendant une partie.</p>
+            </div>
+        `;
+        // Bouton Fermer uniquement (ou Déconnexion qui quitte la partie)
+        buttonsHtml = `
+            <div style="display:flex; flex-direction:column; gap:10px; align-items:center; width:100%;">
+                <button class="btn" onclick="closeModal()">Fermer</button>
+                <button class="btn btn-danger" onclick="logout()">Se déconnecter & Quitter</button>
+            </div>
+        `;
+    } else {
+        // --- MODE HUB : Modification autorisée ---
+        htmlContent = `
+            <div style="margin-bottom: 20px;">
+                <p>Choisissez votre pseudo pour cette session.</p>
+                <input type="text" id="login-pseudo" value="${currentUser}" placeholder="Votre Pseudo..." style="margin-top:15px; text-align:center;" autocomplete="off">
+            </div>
+        `;
+        
+        let logoutBtn = currentUser ? `<button class="btn btn-danger" onclick="logout()">Se déconnecter</button>` : '';
+        
+        buttonsHtml = `
+            <div style="display:flex; flex-direction:column; gap:15px; align-items:center; width:100%;">
+                <button class="btn" onclick="saveSessionPseudo()">Valider</button>
+                ${logoutBtn}
+            </div>
+        `;
+    }
+
+    titleEl.textContent = "PROFIL JOUEUR";
+    contentEl.innerHTML = htmlContent;
+    actionsEl.innerHTML = buttonsHtml;
     
-    if(overlay && actionsEl) {
-        titleEl.textContent = "IDENTIFICATION";
-        contentEl.innerHTML = content;
-        
-        // Bouton de validation
-        actionsEl.innerHTML = `<button class="btn" onclick="saveSessionPseudo()">Valider</button>`;
-        
-        overlay.classList.add('active');
-        
-        // Focus sur l'input après un court instant
+    overlay.classList.add('active');
+
+    // Focus automatique seulement si on est sur le Hub
+    if (!isInGame) {
         setTimeout(() => {
             const input = document.getElementById('login-pseudo');
-            if(input) {
+            if (input) {
                 input.focus();
-                // Ajout : valider avec la touche Entrée
-                input.onkeydown = function(e) {
-                    if(e.key === "Enter") saveSessionPseudo();
-                };
+                input.onkeydown = (e) => { if(e.key === "Enter") saveSessionPseudo(); };
             }
         }, 100);
+    }
+};
+
+window.logout = function() {
+    // 1. On efface le cache
+    localStorage.removeItem(STORAGE_KEY);
+    currentUser = "";
+    
+    // 2. On met à jour l'UI
+    updateSessionUI();
+    
+    // 3. On vide l'input du Hub si présent
+    const nameInput = document.getElementById('player-name');
+    if (nameInput) nameInput.value = "";
+
+    // 4. Si on est en jeu, on redirige vers l'accueil
+    if (window.location.pathname === "/game") {
+        window.location.href = "/";
     } else {
-        console.error("Impossible de trouver les éléments de la modale (overlay ou actions).");
+        closeModal();
+        // Feedback visuel
+        const btn = document.getElementById("btn-profile");
+        if(btn) {
+            btn.classList.add("error-shake");
+            setTimeout(() => btn.classList.remove("error-shake"), 500);
+        }
     }
 };
 
@@ -893,6 +945,47 @@ document.getElementById('btn-join').onclick = () => {
     if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");
     window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
 };
+
+// Ajoutez cet export pour qu'il soit utilisable dans websocket.js
+export function addChatMessage(player, content) {
+    const container = document.getElementById("chat-messages");
+    if (!container) return;
+
+    const div = document.createElement("div");
+    const isMe = player === currentUser; // currentUser vient de votre gestion de session
+    
+    div.className = `chat-msg ${isMe ? 'me' : 'others'}`;
+    div.innerHTML = `<strong>${player}</strong> ${content}`;
+    
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight; // Scroll vers le bas
+}
+
+// Fonction pour ouvrir/fermer le chat
+window.toggleChat = function() {
+    const chat = document.getElementById("chat-container");
+    chat.classList.toggle("collapsed");
+    const icon = document.getElementById("chat-toggle-icon");
+    icon.textContent = chat.classList.contains("collapsed") ? "▲" : "▼";
+};
+
+// Gestionnaire d'envoi du chat
+const chatForm = document.getElementById("chat-form");
+if (chatForm) {
+    chatForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = document.getElementById("chat-input");
+        const text = input.value.trim();
+        
+        if (text && state.websocket) {
+            state.websocket.send(JSON.stringify({
+                type: "chat",
+                content: text
+            }));
+            input.value = "";
+        }
+    });
+}
 
 window.createGame = createGame;
 window.openGameConfig = openGameConfig;
