@@ -1,12 +1,27 @@
 import { elements } from "./dom.js";
 
-export function addHistoryMessage(text) {
+let messageTimeout;
+
+export function addHistoryMessage(text, duration = 0) {
     if (!elements.messages) return;
+    
+    // Annule le timer précédent s'il y en a un (pour ne pas effacer le nouveau message trop vite)
+    if (messageTimeout) clearTimeout(messageTimeout);
+
     elements.messages.innerHTML = "";
+    
     const msg = document.createElement("div");
     msg.className = "log";
     msg.textContent = text;
     elements.messages.appendChild(msg);
+
+    // Si une durée est précisée, on efface après X millisecondes
+    if (duration > 0) {
+        messageTimeout = setTimeout(() => {
+            elements.messages.innerHTML = ""; // Efface le message
+            messageTimeout = null;
+        }, duration);
+    }
 }
 
 export function setRoomInfo(text) {

@@ -240,7 +240,8 @@ if (elements.form) {
             
             if (data.error) {
                 if (data.error === "unknown_word") {
-                    addHistoryMessage("⚠️ " + data.message);
+                    // On ajoute 3000 (3 secondes) comme second paramètre
+                    addHistoryMessage("⚠️ " + data.message, 3000);
                     elements.input.classList.add("error-shake");
                     setTimeout(() => elements.input.classList.remove("error-shake"), 500);
                 } else {

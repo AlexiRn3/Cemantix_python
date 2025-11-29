@@ -459,3 +459,25 @@ input::placeholder { color: #ccc; opacity: 1; }
     }
     .hero h1 { font-size: 3.5rem; }
 }
+
+@keyframes highlight-pop {
+    0% {
+        background-color: var(--accent);
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    100% {
+        background-color: var(--surface);
+        color: var(--text-main);
+        transform: scale(1);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+}
+
+.new-entry {
+    animation: highlight-pop 2s var(--ease-bounce) forwards;
+    z-index: 10; /* Pour passer au-dessus des autres pendant l'anim */
+    position: relative;
+    border-color: var(--accent); /* Garde une bordure colorée subtile après */
+}

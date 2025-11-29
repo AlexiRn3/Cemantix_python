@@ -3,41 +3,41 @@ import { elements } from "./dom.js";
 import { setRoomInfo } from "./ui.js";
 
 export function addEntry(entry) {
-    // Ajoute en haut de la liste (unshift au lieu de push pour l'ordre chrono inverse visuel)
     state.entries.unshift(entry);
-    renderHistory();
+    // ON PASSE LE MOT À SURBRILLER ICI
+    renderHistory(entry.word);
 }
 
-export function renderHistory() {
+// Ajout du paramètre highlightWord avec valeur par défaut null
+export function renderHistory(highlightWord = null) {
     elements.history.innerHTML = "";
 
-    // 1. On prépare les données en attachant le numéro d'essai CHRONOLOGIQUE (Fix problème #3)
-    // state.entries est stocké du plus récent au plus ancien (unshift).
-    // Donc l'index 0 correspond au nombre total d'essais.
     const totalAttempts = state.entries.length;
     
     let displayEntries = state.entries.map((entry, index) => ({
         ...entry,
-        // Le numéro est fixe : (Total - Index actuel dans la liste brute)
         attemptNumber: totalAttempts - index
     }));
 
-    // 2. LOGIQUE DE TRI (Uniquement pour Cémantix)
     if (state.gameType === "cemantix") {
         displayEntries.sort((a, b) => {
-            // Tri décroissant par score (progression)
             return (b.progression || 0) - (a.progression || 0);
         });
     }
 
-    // 3. Affichage
     for (const entry of displayEntries) {
         const row = document.createElement("div");
         const isWin = (entry.game_type === 'definition' && entry.feedback === 'Correct !') || (entry.progression >= 1000);
         
         row.className = `line ${isWin ? 'win' : ''}`;
 
-        // Fix #3 : On utilise le attemptNumber calculé plus haut au lieu d'un index de boucle
+        // --- MODIFICATION ICI : Ajout de la classe d'animation ---
+        // Si c'est le mot qu'on vient d'ajouter, on met la classe .new-entry
+        if (entry.word === highlightWord) {
+            row.classList.add("new-entry");
+        }
+        // ---------------------------------------------------------
+
         const num = `<div class="num">#${entry.attemptNumber}</div>`;
         const word = `<div class="word">${entry.word} <span style="opacity:0.5; font-size:0.8em">(${entry.player_name})</span></div>`;
         
@@ -48,14 +48,11 @@ export function renderHistory() {
             const tempVal = entry.temp !== undefined ? `${entry.temp}°C` : "—";
             const icon = getIcon(entry.progression || 0);
             
-            // Fix #2 : Gestion des pourcentages négatifs
-            // Si la progression est négative, on force 0% pour éviter une erreur CSS
             const widthPercent = Math.max(0, (entry.progression || 0) / 10);
             
             meta = `<div class="meta">${icon} ${tempVal}</div>`;
             bar = `<div class="score-bar"><div class="fill" style="width:${widthPercent}%"></div></div>`;
         } else {
-            // Dictionnario
             meta = `<div class="meta" style="color:var(--accent);">${entry.feedback || ""}</div>`;
             bar = `<div></div>`; 
         }
@@ -65,6 +62,8 @@ export function renderHistory() {
     }
 }
 
+// ... (Le reste du fichier : renderScoreboard, triggerConfetti, getIcon... reste inchangé) ...
+// (Gardez bien vos fonctions getIcon/getColor existantes à la fin)
 export function renderScoreboard(data) {
     if (!elements.scoreboard) return;
     elements.scoreboard.innerHTML = "";
