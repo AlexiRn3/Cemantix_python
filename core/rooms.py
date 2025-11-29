@@ -92,33 +92,33 @@ class RoomState:
         ))
 
         # AJOUT : Logique de vote pour reset
-        def vote_reset(self, player_name: str) -> bool:
-            """Enregistre un vote. Retourne True si tout le monde a voté."""
-            self.reset_votes.add(player_name)
-            # On compare le nombre de votes au nombre de joueurs actuels
-            return len(self.reset_votes) >= len(self.players)
+    def vote_reset(self, player_name: str) -> bool:
+        """Enregistre un vote. Retourne True si tout le monde a voté."""
+        self.reset_votes.add(player_name)
+        # On compare le nombre de votes au nombre de joueurs actuels
+        return len(self.reset_votes) >= len(self.players)
 
-        # AJOUT : Réinitialisation de la partie
-        def reset_game(self):
-            """Relance la partie"""
-            self.engine.new_game()
-            self.history.clear()
-            self.reset_votes.clear()
-            self.locked = False
-            # On remet les stats des joueurs à zéro pour la nouvelle partie
-            for p in self.players.values():
-                p.attempts = 0
-                p.best_similarity = 0.0
+    # AJOUT : Réinitialisation de la partie
+    def reset_game(self):
+        """Relance la partie"""
+        self.engine.new_game()
+        self.history.clear()
+        self.reset_votes.clear()
+        self.locked = False
+        # On remet les stats des joueurs à zéro pour la nouvelle partie
+        for p in self.players.values():
+            p.attempts = 0
+            p.best_similarity = 0.0
 
-        def to_dict(self):
-            return {
-                "room_id": self.room_id,
-                "game_type": self.game_type,
-                "mode": self.mode,
-                "locked": self.locked,
-                "players": {name: stats.to_dict() for name, stats in self.players.items()},
-                "history": [entry.to_dict() for entry in self.history],
-            }
+    def to_dict(self):
+        return {
+            "room_id": self.room_id,
+            "game_type": self.game_type,
+            "mode": self.mode,
+            "locked": self.locked,
+            "players": {name: stats.to_dict() for name, stats in self.players.items()},
+            "history": [entry.to_dict() for entry in self.history],
+        }
 
 class RoomManager:
     def __init__(self, model, state_path: str = "rooms_state.json"):
