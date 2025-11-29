@@ -64,6 +64,7 @@ function closeModal() {
 
 // 1. Ouvrir la modale
 function openDictioConfig() {
+    if (!verifierPseudo()) return;
     const modal = document.getElementById('config-modal');
     modal.classList.add('active');
     // Reset à l'état par défaut (Coop)
@@ -75,6 +76,26 @@ function openDictioConfig() {
 function closeConfigModal() {
     document.getElementById('config-modal').classList.remove('active');
 }
+
+function verifierPseudo() {
+    const nameInput = document.getElementById('player-name');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        // 1. On met le focus sur le champ (le navigateur scroll vers lui si besoin)
+        nameInput.focus();
+        
+        // 2. On ajoute l'animation "error-shake" définie dans ton style.css
+        nameInput.classList.add('error-shake');
+        
+        // 3. On retire la classe après l'animation pour pouvoir la rejouer si besoin
+        setTimeout(() => nameInput.classList.remove('error-shake'), 500);
+        
+        return false; // Le pseudo est invalide
+    }
+    return true; // C'est tout bon
+}
+
 
 // 3. Gérer l'affichage dynamique (Coop vs Blitz)
 function toggleDurationDisplay() {
@@ -122,6 +143,7 @@ function launchDictio() {
 }
 
 async function createGame(type, mode = 'coop', duration = 0) {
+    if (!verifierPseudo()) return;
     const name = document.getElementById('player-name').value;
     if(!name) return showModal("Pseudo Requis", "Identifiez-vous avant de commencer une session.");
     
@@ -135,6 +157,7 @@ async function createGame(type, mode = 'coop', duration = 0) {
 }
 
 document.getElementById('btn-join').onclick = () => {
+    if (!verifierPseudo()) return;
     const name = document.getElementById('player-name').value;
     const room = document.getElementById('room-id').value;
     if(!name || !room) return showModal("Données Manquantes", "Le pseudo et l'ID de room sont nécessaires pour la synchronisation.");
