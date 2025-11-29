@@ -953,6 +953,9 @@ input:disabled {
     border-radius: 10px;
     max-width: 85%;
     line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .chat-msg strong {
