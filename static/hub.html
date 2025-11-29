@@ -34,9 +34,18 @@
             <div>
                 <div class="game-icon" style="color: #00e054;">¶</div>
                 <h3>Dictionnario</h3>
-                <p>Déduction pure. Analysez la définition, comptez les lettres et trouvez le mot exact le plus rapidement possible.</p>
-            </div>
-            <button class="btn" onclick="createGame('definition')">Lancer le protocole</button>
+                <p>Déduction pure. Analysez la définition.</p>
+                
+                    <div style="margin-top:15px;">
+                        <label style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">Mode :</label>
+                        <select id="dictio-mode" style="padding:8px; font-size:1rem; margin-bottom:10px;">
+                            <option value="classic">Classique (1 mot)</option>
+                            <option value="blitz_3">Blitz (3 minutes)</option>
+                            <option value="blitz_5">Blitz (5 minutes)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn" onclick="launchDictio()">Lancer</button>
         </article>
     </div>
 </div>
@@ -62,14 +71,28 @@ function closeModal() {
     document.getElementById('modal-overlay').classList.remove('active');
 }
 
-async function createGame(type) {
+function launchDictio() {
+    const modeSelect = document.getElementById('dictio-mode').value;
+    let mode = 'coop'; // Mode par défaut
+    let duration = 0;
+
+    if (modeSelect.startsWith('blitz')) {
+        mode = 'blitz';
+        // On extrait le chiffre (3 ou 5) et on convertit en secondes
+        duration = parseInt(modeSelect.split('_')[1]) * 60; 
+    }
+
+    createGame('definition', mode, duration);
+}
+
+async function createGame(type, mode = 'coop', duration = 0) {
     const name = document.getElementById('player-name').value;
-    if(!name) return showModal("Pseudo Requis", "Identifiez-vous avant de commencer une session.");
+    if(!name) return showModal("Pseudo Requis", "Identifiez-vous.");
     
     const res = await fetch('/rooms', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ player_name: name, game_type: type, mode: 'coop' })
+        body: JSON.stringify({ player_name: name, game_type: type, mode: mode, duration: duration })
     });
     const data = await res.json();
     window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(name)}`;

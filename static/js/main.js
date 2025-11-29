@@ -39,6 +39,10 @@ ws.onmessage = (event) => {
             renderHistory(data.history || []);
             renderScoreboard(data.scoreboard || []);
             state.currentMode = data.mode;
+            if (data.mode === "blitz" && data.end_time) {
+                // On lance le timer avec l'heure de fin reçue du serveur
+                startTimer(data.end_time);
+            }
             state.roomLocked = data.locked;
             state.scoreboard = data.scoreboard;
             break;
@@ -70,6 +74,26 @@ ws.onmessage = (event) => {
         case "game_reset":
             performGameReset(data);
             break;
+    }
+
+        if (data.blitz_success) {
+        // 1. Animation confetti petite
+        triggerConfetti(); 
+        
+        // 2. Mettre à jour le score
+        document.getElementById('score-display').textContent = data.team_score;
+        
+        // 3. Mettre à jour la définition (UI)
+        initGameUI({ 
+            game_type: 'definition', 
+            public_state: data.new_public_state 
+        });
+        
+        // 4. Vider l'historique visuel pour le nouveau mot
+        state.entries = [];
+        renderHistory();
+        
+        addHistoryMessage(`✨ Mot trouvé ! Au suivant !`, 2000);
     }
 };
 
@@ -252,4 +276,25 @@ if (elements.form) {
             console.error(err);
         }
     });
+}
+
+function startTimer(endTime) {
+    const timerEl = document.getElementById('timer-display');
+    document.getElementById('blitz-panel').style.display = 'block';
+
+    const interval = setInterval(() => {
+        const now = Date.now() / 1000;
+        const diff = endTime - now;
+
+        if (diff <= 0) {
+            clearInterval(interval);
+            timerEl.textContent = "00:00";
+            // Gérer la fin de partie (afficher modale finale avec score)
+            showModal("TEMPS ÉCOULÉ", `Vous avez trouvé ${document.getElementById('score-display').textContent} mots !`);
+        } else {
+            const m = Math.floor(diff / 60);
+            const s = Math.floor(diff % 60);
+            timerEl.textContent = `${m}:${s < 10 ? '0'+s : s}`;
+        }
+    }, 1000);
 }

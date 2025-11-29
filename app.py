@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 from typing import Dict, List, Any, Optional
+import time
 
 from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
@@ -28,6 +29,7 @@ class CreateRoomRequest(BaseModel):
     player_name: str
     mode: str = "coop"
     game_type: str = "cemantix"
+    duration: int = 0
 
 
 class GuessRequest(BaseModel):
@@ -90,6 +92,11 @@ def build_victory_message(room: RoomState, player_name: str):
 
 # Ajout du typage de retour explicite -> Dict[str, Any] pour corriger l'erreur Pylance
 def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any]:
+    if room.mode == "blitz" and room.end_time > 0:
+        if time.time() > room.end_time:
+            room.locked = True
+            return {"error": "time_up", "message": "Le temps est écoulé !"}
+
     if room.locked:
         return {"error": "room_locked", "message": "Cette room est verrouillée"}
 
@@ -107,8 +114,24 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
     room.record_guess(word, player_name, similarity, temperature, feedback)
 
     if victory:
-        if room.mode == "race" or room.mode == "coop":
-            room.locked = True
+        if room.mode == "blitz":
+            # En Blitz : On incrémente le score et on change de mot
+            room.team_score += 1
+            room.engine.next_word() # Méthode à ajouter dans DefinitionEngine
+            
+            return {
+                "result": {**result, "progression": 100}, # progression fictive
+                "guess_payload": None, # On ne log pas le "Bravo" dans l'historique standard
+                "scoreboard": build_scoreboard(room),
+                "victory": False, # On met False pour ne pas déclencher la modale de fin
+                "blitz_success": True, # Nouveau flag
+                "new_public_state": room.engine.get_public_state(),
+                "team_score": room.team_score
+            }
+        else:
+            # Mode Classique : On verrouille
+            if room.mode == "race" or room.mode == "coop":
+                room.locked = True
 
     # room_manager.persist_room(room.room_id) # Optionnel
 
@@ -154,6 +177,9 @@ def create_room(payload: CreateRoomRequest):
 
     mode = payload.mode if payload.mode in {"coop", "race"} else "coop"
     room = room_manager.create_room(payload.game_type, mode, payload.player_name)
+
+    if payload.mode == "blitz" and payload.duration > 0:
+        room.end_time = time.time() + payload.duration
     
     return {
         "room_id": room.room_id, 
@@ -288,7 +314,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 "mode": room.mode,
                 "locked": room.locked,
                 "game_type": room.game_type,
-                "public_state": public_state
+                "public_state": public_state,
+                "end_time": room.end_time  # Pour le mode Blitz
             }
         )
         
