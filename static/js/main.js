@@ -282,19 +282,26 @@ function startTimer(endTime) {
     const timerEl = document.getElementById('timer-display');
     document.getElementById('blitz-panel').style.display = 'block';
 
-    const interval = setInterval(() => {
+    // On crée une fonction de mise à jour
+    const updateTimer = () => {
         const now = Date.now() / 1000;
         const diff = endTime - now;
 
         if (diff <= 0) {
             clearInterval(interval);
             timerEl.textContent = "00:00";
-            // Gérer la fin de partie (afficher modale finale avec score)
+            // Gérer la fin de partie
             showModal("TEMPS ÉCOULÉ", `Vous avez trouvé ${document.getElementById('score-display').textContent} mots !`);
         } else {
             const m = Math.floor(diff / 60);
             const s = Math.floor(diff % 60);
             timerEl.textContent = `${m}:${s < 10 ? '0'+s : s}`;
         }
-    }, 1000);
+    };
+
+    // 1. On l'appelle tout de suite pour éviter le "00:00"
+    updateTimer();
+    
+    // 2. On lance l'intervalle
+    const interval = setInterval(updateTimer, 1000);
 }

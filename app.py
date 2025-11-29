@@ -113,18 +113,17 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
     # Enregistrement dans l'état de la room
     room.record_guess(word, player_name, similarity, temperature, feedback)
 
+    blitz_data = {}
+
     if victory:
         if room.mode == "blitz":
             # En Blitz : On incrémente le score et on change de mot
             room.team_score += 1
-            room.engine.next_word() # Méthode à ajouter dans DefinitionEngine
+            room.engine.next_word() 
             
-            return {
-                "result": {**result, "progression": 100}, # progression fictive
-                "guess_payload": None, # On ne log pas le "Bravo" dans l'historique standard
-                "scoreboard": build_scoreboard(room),
-                "victory": False, # On met False pour ne pas déclencher la modale de fin
-                "blitz_success": True, # Nouveau flag
+            # ON STOCKE LES INFOS POUR LE PAYLOAD
+            blitz_data = {
+                "blitz_success": True,
                 "new_public_state": room.engine.get_public_state(),
                 "team_score": room.team_score
             }
@@ -133,10 +132,9 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
             if room.mode == "race" or room.mode == "coop":
                 room.locked = True
 
-    # room_manager.persist_room(room.room_id) # Optionnel
-
     progression = int(round(similarity * 1000)) if room.game_type == "cemantix" else 0
     
+    # ON INCLUT blitz_data DANS LE PAYLOAD DU WEBSOCKET
     guess_payload = {
         "type": "guess",
         "word": word,
@@ -145,14 +143,15 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "similarity": similarity,
         "progression": progression,
         "feedback": feedback,
-        "game_type": room.game_type
+        "game_type": room.game_type,
+        **blitz_data  # <--- C'EST ICI LA CLÉ : on fusionne les infos de victoire dans le message
     }
     
     return {
         "result": {**result, "progression": progression},
         "guess_payload": guess_payload,
         "scoreboard": build_scoreboard(room),
-        "victory": victory,
+        "victory": victory and room.mode != "blitz", # Victoire standard seulement si pas blitz
     }
 
 
