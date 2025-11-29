@@ -166,12 +166,24 @@ if (elements.form) {
             });
             
             const data = await res.json();
+            
             if (data.error) {
-                showModal("Erreur", data.message);
+                // MODIFICATION ICI :
+                // Si c'est juste un mot inconnu, on l'écrit discrètement
+                if (data.error === "unknown_word") {
+                    addHistoryMessage("⚠️ " + data.message);
+                    
+                    // Optionnel : On peut faire vibrer l'input ou le colorer en rouge brièvement
+                    elements.input.classList.add("error-shake");
+                    setTimeout(() => elements.input.classList.remove("error-shake"), 500);
+                } 
+                // Pour les autres erreurs (Room fermée, bug serveur...), on garde la modale
+                else {
+                    showModal("Erreur", data.message);
+                }
             }
         } catch (err) {
             console.error(err);
-            // On ne montre pas de modal pour ne pas spammer si le serveur est juste lent
         }
     });
 } else {
