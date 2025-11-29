@@ -47,3 +47,17 @@ export function closeModal() {
     const overlay = document.getElementById('modal-overlay');
     if (overlay) overlay.classList.remove('active');
 }
+
+document.addEventListener('keydown', (e) => {
+    const overlay = document.getElementById('modal-overlay');
+    
+    // Si la touche est Entrée ET que la modale est visible (classe 'active')
+    if (e.key === "Enter" && overlay && overlay.classList.contains('active')) {
+        e.preventDefault(); // Empêche d'écrire dans l'input derrière ou de re-soumettre
+        
+        // On déclenche le clic sur le bouton principal de la modale
+        // Cela exécutera soit closeModal(), soit la redirection en cas de victoire
+        const closeBtn = document.getElementById('modal-close-btn');
+        if (closeBtn) closeBtn.click();
+    }
+});
