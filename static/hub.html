@@ -35,17 +35,8 @@
                 <div class="game-icon" style="color: #00e054;">¶</div>
                 <h3>Dictionnario</h3>
                 <p>Déduction pure. Analysez la définition.</p>
-                
-                    <div style="margin-top:15px;">
-                        <label style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">Mode :</label>
-                        <select id="dictio-mode" style="padding:8px; font-size:1rem; margin-bottom:10px;">
-                            <option value="classic">Classique (1 mot)</option>
-                            <option value="blitz_3">Blitz (3 minutes)</option>
-                            <option value="blitz_5">Blitz (5 minutes)</option>
-                        </select>
-                    </div>
                 </div>
-                <button class="btn" onclick="launchDictio()">Lancer</button>
+            <button class="btn" onclick="openDictioConfig()">Configurer & Jouer</button>
         </article>
     </div>
 </div>
@@ -71,6 +62,51 @@ function closeModal() {
     document.getElementById('modal-overlay').classList.remove('active');
 }
 
+// 1. Ouvrir la modale
+function openDictioConfig() {
+    const modal = document.getElementById('config-modal');
+    modal.classList.add('active');
+    // Reset à l'état par défaut (Coop)
+    document.getElementById('config-mode').value = "coop";
+    toggleDurationDisplay();
+}
+
+// 2. Fermer la modale
+function closeConfigModal() {
+    document.getElementById('config-modal').classList.remove('active');
+}
+
+// 3. Gérer l'affichage dynamique (Coop vs Blitz)
+function toggleDurationDisplay() {
+    const mode = document.getElementById('config-mode').value;
+    const durationGroup = document.getElementById('duration-group');
+    const desc = document.getElementById('mode-desc');
+
+    if (mode === 'blitz') {
+        durationGroup.style.display = 'block';
+        desc.textContent = "Trouvez un maximum de mots dans le temps imparti.";
+    } else {
+        durationGroup.style.display = 'none';
+        desc.textContent = "Trouvez un mot unique ensemble sans limite de temps.";
+    }
+}
+
+// 4. Lancer la partie avec les paramètres choisis
+function submitDictioConfig() {
+    const mode = document.getElementById('config-mode').value;
+    let duration = 0;
+
+    if (mode === 'blitz') {
+        duration = parseInt(document.getElementById('config-duration').value);
+    }
+
+    // On ferme la modale de config
+    closeConfigModal();
+    
+    // On appelle la fonction générique de création
+    createGame('definition', mode, duration);
+}
+
 function launchDictio() {
     const modeSelect = document.getElementById('dictio-mode').value;
     let mode = 'coop'; // Mode par défaut
@@ -87,7 +123,7 @@ function launchDictio() {
 
 async function createGame(type, mode = 'coop', duration = 0) {
     const name = document.getElementById('player-name').value;
-    if(!name) return showModal("Pseudo Requis", "Identifiez-vous.");
+    if(!name) return showModal("Pseudo Requis", "Identifiez-vous avant de commencer une session.");
     
     const res = await fetch('/rooms', {
         method: 'POST',
@@ -105,6 +141,39 @@ document.getElementById('btn-join').onclick = () => {
     window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
 };
 </script>
+
+<div id="config-modal" class="modal-overlay">
+    <div class="modal-box" style="text-align: left; max-width: 450px;">
+        <h2 style="text-align: center; margin-bottom: 30px;">Configuration</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight:bold; display:block; margin-bottom:10px;">Mode de jeu</label>
+            <select id="config-mode" onchange="toggleDurationDisplay()" style="width:100%;">
+                <option value="coop">🤝 Classique (Coop)</option>
+                <option value="blitz">⚡ Blitz (Chrono)</option>
+            </select>
+            <p id="mode-desc" style="font-size: 0.9em; color: var(--text-muted); margin-top: 5px;">
+                Trouvez un mot unique ensemble sans limite de temps.
+            </p>
+        </div>
+
+        <div id="duration-group" style="margin-bottom: 30px; display: none;">
+            <label style="font-weight:bold; display:block; margin-bottom:10px;">Durée du défi</label>
+            <select id="config-duration" style="width:100%;">
+                <option value="30">30 secondes</option>
+                <option value="60" selected>1 minute</option>
+                <option value="120">2 minutes</option>
+                <option value="180">3 minutes</option>
+                <option value="300">5 minutes</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+            <button class="btn" onclick="submitDictioConfig()">Lancer</button>
+            <button class="btn btn-outline" onclick="closeConfigModal()">Annuler</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
