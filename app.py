@@ -14,7 +14,7 @@ app = FastAPI()
 
 # Chargement du modèle avec gestion d'erreur si le fichier est absent
 try:
-    loader = ModelLoader("model/frWac_no_postag_phrase_500_cbow_cut10_stripped.bin")
+    loader = ModelLoader("model/frWac_no_postag_no_phrase_700_skip_cut50.bin")
     model = loader.load()
     print("Modèle chargé avec succès.")
 except Exception as e:

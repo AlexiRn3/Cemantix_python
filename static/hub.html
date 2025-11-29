@@ -6,7 +6,19 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-
+<div class="falling-objects-background">
+    <span class="falling-object" style="--i:11; --hue:0;">🎮</span>
+    <span class="falling-object" style="--i:12; --hue:180;">👾</span>
+    <span class="falling-object" style="--i:24; --hue:60;">🕹️</span>
+    <span class="falling-object" style="--i:10; --hue:240;">🎮</span>
+    <span class="falling-object" style="--i:14; --hue:300;">👾</span>
+    <span class="falling-object" style="--i:23; --hue:120;">🕹️</span>
+    <span class="falling-object" style="--i:18; --hue:330;">🎮</span>
+    <span class="falling-object" style="--i:16; --hue:270;">👾</span>
+    <span class="falling-object" style="--i:19; --hue:90;">🕹️</span>
+    <span class="falling-object" style="--i:20; --hue:150;">🎮</span>
+    <span class="falling-object" style="--i:22; --hue:210;">👾</span>
+</div>
 <div class="user-controls">
     <button id="btn-profile" class="profile-btn" onclick="openLoginModal()">
         <div class="avatar">👤</div>
@@ -218,6 +230,33 @@
         </div>
     </div>
 </footer>
+
+<!-- --- Musique de fond Mario-like --- -->
+<audio id="bg-music" src="/static/music/Hub.mp3" loop preload="auto"></audio>
+
+<div id="music-toggle"
+     style="
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+        background: var(--card);
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        z-index: 9999;
+     ">
+    <span id="music-icon" style="font-size: 1.4rem;">🔊</span>
+</div>
+
+<script type="module" src="/static/js/music_hub.js"></script>
+
+
 
 </body>
 </html>

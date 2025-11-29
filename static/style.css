@@ -878,3 +878,61 @@ input::placeholder { color: #ccc; opacity: 1; }
     background: var(--success);
     color: white;
 }
+
+/* --- Arrière-plan des objets qui tombent --- */
+
+/* Conteneur principal */
+.falling-objects-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Cache les objets hors écran */
+    z-index: -1; /* Place le conteneur derrière tout le contenu */
+    pointer-events: none; /* Assure qu'on peut cliquer sur le contenu, même derrière */
+}
+
+/* Style de chaque objet */
+.falling-object {
+    position: absolute;
+    display: block;
+    top: 0;
+    font-size: calc(10px + var(--i) * 2px); /* Taille basée sur --i */
+    color: hsl(var(--hue), 80%, 60%); /* Couleur basée sur --hue (change de couleur) */
+    opacity: 0.25; /* Rendu semi-transparent */
+    animation: fall linear infinite; /* Applique l'animation de chute */
+}
+
+/* Positionnement initial aléatoire des objets */
+.falling-object:nth-child(1) { left: 5%; animation-delay: 0s; animation-duration: 10s; }
+.falling-object:nth-child(2) { left: 10%; animation-delay: 2s; animation-duration: 15s; }
+.falling-object:nth-child(3) { left: 15%; animation-delay: 4s; animation-duration: 12s; }
+.falling-object:nth-child(4) { left: 20%; animation-delay: 6s; animation-duration: 18s; }
+.falling-object:nth-child(5) { left: 25%; animation-delay: 8s; animation-duration: 14s; }
+.falling-object:nth-child(6) { left: 30%; animation-delay: 10s; animation-duration: 20s; }
+.falling-object:nth-child(7) { left: 50%; animation-delay: 3s; animation-duration: 13s; }
+.falling-object:nth-child(8) { left: 65%; animation-delay: 5s; animation-duration: 16s; }
+.falling-object:nth-child(9) { left: 80%; animation-delay: 7s; animation-duration: 11s; }
+.falling-object:nth-child(10) { left: 90%; animation-delay: 9s; animation-duration: 19s; }
+.falling-object:nth-child(11) { left: 95%; animation-delay: 1s; animation-duration: 17s; }
+
+
+@keyframes fall {
+    0% {
+        /* On commence toujours en transform: translate() pour isoler la composition */
+        transform: translate(0, -100vh) rotate(0deg);
+        opacity: 0;
+    }
+    5% {
+        opacity: 0.25;
+    }
+    95% {
+        opacity: 0.25;
+    }
+    100% {
+        /* On utilise translate() au lieu de translateY() pour une légère amélioration */
+        transform: translate(0, 100vh) rotate(360deg); /* Réduit la rotation à 360deg */
+        opacity: 0;
+    }
+}

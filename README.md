@@ -8,8 +8,8 @@ Installez les dépendances Python nécessaires via :
 pip install -r requirements.txt
 ```
 
-Assurez-vous de disposer du modèle `frWac_no_postag_phrase_500_cbow_cut10_stripped.bin` dans un dossier `model/` à la racine du projet, conformément au chemin utilisé dans `app.py`.
-https://embeddings.net/embeddings/frWac_no_postag_phrase_500_cbow_cut10.bin
+Assurez-vous de disposer du modèle `frWac_no_postag_no_phrase_700_skip_cut50.bin` dans un dossier `model/` à la racine du projet, conformément au chemin utilisé dans `app.py`.
+https://embeddings.net/embeddings/frWac_no_postag_no_phrase_700_skip_cut50.bin
 ## Démarrage de l'application
 
 Après installation des dépendances et ajout du modèle, lancez l'API avec :
