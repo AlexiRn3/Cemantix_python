@@ -37,16 +37,25 @@ class CemantixEngine(GameEngine):
         self.model = model
         self.target_word: Optional[str] = None
 
-    def new_game(self):
+    # MODIFICATION ICI : Ajout du paramètre 'custom_seed'
+    def new_game(self, custom_seed=None):
         vocab = self.model.key_to_index.keys()
-        # Sélection d'un mot aléatoire fréquent
         frequent_words = [
             w for w in vocab
             if 4 <= len(w) <= 8
             and re.fullmatch(r"[a-zàâçéèêëîïôûùüÿñæœ]+", w)
             and self.model.get_vecattr(w, "count") > 50000
         ]
-        self.target_word = random.choice(frequent_words)
+        
+        # Si c'est le mode Daily, on utilise la date comme graine aléatoire
+        if custom_seed:
+            random.seed(custom_seed)
+            self.target_word = random.choice(frequent_words)
+            # Important : on remet l'aléatoire normal pour ne pas impacter les autres jeux
+            random.seed(None)
+        else:
+            self.target_word = random.choice(frequent_words)
+            
         print(f"[CEMANTIX] Mot cible : {self.target_word}")
 
     def guess(self, word: str) -> Dict[str, Any]:
