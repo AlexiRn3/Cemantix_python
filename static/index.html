@@ -2,7 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Cémantix — Version Python</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cémantix</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -11,89 +12,68 @@
     <a class="nav-link nav-link-active" href="/">Cémantix</a>
     <a class="nav-link" href="/hub">Hub</a>
 </nav>
-<header class="hub-hero">
-    <div class="hub-title">
-        <p class="eyebrow">Hub de jeux</p>
-        <h1>Choisissez votre défi</h1>
-        <p class="lede">Centralisez vos parties en un seul endroit : chaque jeu aura son propre espace ici. En attendant de nouveaux titres, découvrez pourquoi Cémantix reste un excellent choix.</p>
-    </div>
-    <div class="game-card">
-        <div class="card-header">
-            <div>
-                <p class="eyebrow">Disponible</p>
-                <h2>Cémantix</h2>
-            </div>
-            <span class="badge">Jeu de mots</span>
-        </div>
-        <ul class="card-list">
-            <li>• Parties coop ou course pour choisir votre rythme.</li>
-            <li>• Scoreboard en temps réel pour suivre les progrès de chacun.</li>
-            <li>• Indice thermique sur chaque mot pour guider vos tentatives.</li>
-        </ul>
-        <p class="cta-text">Rejoignez une room ou créez-en une pour lancer la partie.</p>
-    </div>
-</header>
 
 <div class="layout">
 
-    <!-- COLONNE GAUCHE : TABLEAU -->
-    <div id="legend-panel" class="legend">
-        <h2>Températures</h2>
-        <p>Correspondance des degrés :</p>
-
+    <aside id="legend-panel" class="legend">
+        <h2>Légende</h2>
         <table class="legend-table">
-            <tr><th>‰</th><th>Thermo</th><th>°C</th></tr>
-            <tr><td>1000</td><td>💥</td><td>100,00</td></tr>
-            <tr><td>999</td><td>🥵</td><td>54,44</td></tr>
-            <tr><td>990</td><td>🔥</td><td>43,00</td></tr>
-            <tr><td>900</td><td>🌡️</td><td>28,86</td></tr>
-            <tr><td>1</td><td>😎</td><td>17,12</td></tr>
-            <tr><td>0</td><td>🧊</td><td>0,00</td></tr>
-            <tr><td>-1</td><td>❄️</td><td>-100,00</td></tr>
+            <thead>
+                <tr><th>#</th><th>&nbsp;</th><th>°C</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1000</td><td>💥</td><td>100</td></tr>
+                <tr><td>999</td><td>🥵</td><td>54</td></tr>
+                <tr><td>990</td><td>🔥</td><td>43</td></tr>
+                <tr><td>900</td><td>🌡️</td><td>28</td></tr>
+                <tr><td>1</td><td>😎</td><td>17</td></tr>
+                <tr><td>0</td><td>🧊</td><td>0</td></tr>
+                <tr><td>-1</td><td>❄️</td><td>-100</td></tr>
+            </tbody>
         </table>
-    </div>
+    </aside>
 
-    <!-- COLONNE CENTRALE : LE JEU -->
-    <div id="container" class="game-area">
-
-        <h1>Cémantix</h1>
-
+    <main id="container" class="game-area">
         <div class="room-panel">
             <div class="room-form">
-                <label>Votre pseudo
-                    <input id="player-name" type="text" placeholder="Choisissez un pseudo">
-                </label>
-                <label>Mode
+                <div>
+                    <label for="player-name">Pseudo</label>
+                    <input id="player-name" type="text" placeholder="Pseudo...">
+                </div>
+                <div>
+                    <label for="mode-select">Mode</label>
                     <select id="mode-select">
                         <option value="coop">Coop</option>
                         <option value="race">Course</option>
                     </select>
-                </label>
-                <label>ID de room
-                    <input id="room-id-input" type="text" placeholder="Laisser vide pour créer">
-                </label>
+                </div>
+                <div>
+                    <label for="room-id-input">Room ID</label>
+                    <input id="room-id-input" type="text" placeholder="Ex: 1234...">
+                </div>
             </div>
+            
             <div class="room-actions">
-                <button id="create-room" type="button">Créer une room</button>
-                <button id="join-room" type="button">Rejoindre</button>
+                <button id="create-room" type="button">Créer</button>
+                <button id="join-room" type="button" class="ghost">Rejoindre</button>
             </div>
-            <div id="room-info" class="room-info"></div>
+            <div id="room-info" class="room-info" style="margin-top:10px; color:var(--accent-color);"></div>
         </div>
 
         <form id="form">
-            <input id="word" type="text" placeholder="Tapez un mot..." autofocus>
-            <button type="submit">Tester</button>
+            <input id="word" type="text" placeholder="Entrez un mot..." autocomplete="off" autofocus>
+            <button type="submit">Envoyer</button>
         </form>
 
         <div id="messages" class="messages"></div>
+        <div id="history">
+            </div>
+    </main>
 
-        <div id="history"></div>
-    </div>
-
-    <div class="scoreboard-panel">
-        <h2>Scoreboard</h2>
-        <div id="scoreboard"></div>
-    </div>
+    <aside class="scoreboard-panel">
+        <h2>Classement</h2>
+        <div id="scoreboard" class="scoreboard-table"></div>
+    </aside>
 
 </div>
 
@@ -101,3 +81,4 @@
 <script type="module" src="/static/js/main.js"></script>
 
 </body>
+</html>

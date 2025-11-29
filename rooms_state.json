@@ -1,0 +1,54 @@
+{
+  "rooms": [
+    {
+      "room_id": "d0302da0",
+      "target_word": "rarement",
+      "mode": "coop",
+      "locked": false,
+      "players": {
+        "Béliqueux": {
+          "attempts": 6,
+          "best_similarity": 1.0
+        }
+      },
+      "history": [
+        {
+          "word": "maison",
+          "player_name": "Béliqueux",
+          "similarity": -0.061873361468315125,
+          "temperature": -6.19
+        },
+        {
+          "word": "abruti",
+          "player_name": "Béliqueux",
+          "similarity": 0.17201916873455048,
+          "temperature": 17.2
+        },
+        {
+          "word": "julien",
+          "player_name": "Béliqueux",
+          "similarity": -0.10807982087135315,
+          "temperature": -10.81
+        },
+        {
+          "word": "appartement",
+          "player_name": "Béliqueux",
+          "similarity": 0.04959554970264435,
+          "temperature": 4.96
+        },
+        {
+          "word": "rarement",
+          "player_name": "Béliqueux",
+          "similarity": 1.0,
+          "temperature": 100.0
+        },
+        {
+          "word": "rare",
+          "player_name": "Béliqueux",
+          "similarity": 0.6534695029258728,
+          "temperature": 65.35
+        }
+      ]
+    }
+  ]
+}
