@@ -272,7 +272,11 @@ input::placeholder { color: var(--text-muted); opacity: 0.5; }
     border-radius: 2px;
     overflow: hidden;
 }
-.score-bar .fill { height: 100%; transition: width 0.5s var(--ease-out); }
+.score-bar .fill {
+    height: 100%;
+    transition: width 0.5s var(--ease-out);
+    background-color: var(--accent); /* Orange */
+}
 
 /* Scoreboard */
 .score-row {
