@@ -40,13 +40,13 @@
         </article>
 
         <article class="game-card">
-            <div>
-                <div class="game-icon" style="color: #6c5ce7;">?</div>
-                <h3>L'Intrus</h3>
-                <p>Un de ces 4 mots n'a rien à faire là. Serez-vous assez fin pour repérer l'intrus sémantique ?</p>
-            </div>
-            <button class="btn" onclick="createGame('intruder')">Trouver l'intrus</button>
-        </article>
+        <div>
+            <div class="game-icon" style="color: #6c5ce7;">?</div>
+            <h3>L'Intrus</h3>
+            <p>Un de ces 4 mots n'a rien à faire là. Serez-vous assez fin pour repérer l'intrus sémantique ?</p>
+        </div>
+        <button class="btn" onclick="openGameConfig('intruder')">Chrono & Jouer</button>
+    </article>
     </div>
 </div>
 
@@ -61,6 +61,45 @@
 </div>
 
 <script>
+
+let currentConfigType = "definition"; // 'definition' ou 'intruder'
+
+function openGameConfig(type) {
+    if (!verifierPseudo()) return;
+    
+    currentConfigType = type;
+    const modal = document.getElementById('config-modal');
+    const modeGroup = document.getElementById('mode-group');
+    const durationGroup = document.getElementById('duration-group');
+    const title = document.getElementById('config-modal-title');
+    const desc = document.getElementById('mode-desc');
+    const modeSelect = document.getElementById('config-mode');
+
+    modal.classList.add('active');
+
+    if (type === 'intruder') {
+        // --- CONFIGURATION INTRUS (Timer Obligatoire) ---
+        title.textContent = "L'Intrus : Contre la montre";
+        
+        // On cache le choix du mode car c'est forcé en Blitz
+        modeGroup.style.display = 'none'; 
+        modeSelect.value = 'blitz'; // Force la valeur interne
+        
+        // On affiche toujours la durée
+        durationGroup.style.display = 'block';
+        
+        desc.textContent = "Trouvez un maximum d'intrus avant la fin du temps imparti !";
+    } else {
+        // --- CONFIGURATION DICTIONNARIO (Choix Libre) ---
+        title.textContent = "Config. Dictionnario";
+        
+        // On affiche le choix du mode
+        modeGroup.style.display = 'block';
+        modeSelect.value = 'coop'; // Défaut
+        
+        toggleDurationDisplay(); // Gère l'affichage de la durée selon le mode choisi
+    }
+}
 // Logique Modale
 function showModal(title, message) {
     document.getElementById('modal-title').textContent = title;
@@ -108,21 +147,27 @@ function verifierPseudo() {
 
 // 3. Gérer l'affichage dynamique (Coop vs Blitz)
 function toggleDurationDisplay() {
+    // Cette fonction ne sert maintenant que pour Dictionnario
+    // car pour l'Intrus, le select "config-mode" est caché mais vaut "blitz"
     const mode = document.getElementById('config-mode').value;
     const durationGroup = document.getElementById('duration-group');
     const desc = document.getElementById('mode-desc');
 
-    if (mode === 'blitz') {
-        durationGroup.style.display = 'block';
-        desc.textContent = "Trouvez un maximum de mots dans le temps imparti.";
-    } else {
-        durationGroup.style.display = 'none';
-        desc.textContent = "Trouvez un mot unique ensemble sans limite de temps.";
+    if (currentConfigType === 'definition') {
+        if (mode === 'blitz') {
+            durationGroup.style.display = 'block';
+            desc.textContent = "Trouvez un maximum de mots dans le temps imparti.";
+        } else {
+            durationGroup.style.display = 'none';
+            desc.textContent = "Trouvez un mot unique ensemble sans limite de temps.";
+        }
     }
 }
 
 // 4. Lancer la partie avec les paramètres choisis
-function submitDictioConfig() {
+function submitGameConfig() {
+    // Récupération des valeurs
+    // Pour l'intrus, mode sera 'blitz' car on l'a forcé dans openGameConfig
     const mode = document.getElementById('config-mode').value;
     let duration = 0;
 
@@ -130,11 +175,10 @@ function submitDictioConfig() {
         duration = parseInt(document.getElementById('config-duration').value);
     }
 
-    // On ferme la modale de config
     closeConfigModal();
     
-    // On appelle la fonction générique de création
-    createGame('definition', mode, duration);
+    // Lancement universel
+    createGame(currentConfigType, mode, duration);
 }
 
 function launchDictio() {
@@ -176,32 +220,31 @@ document.getElementById('btn-join').onclick = () => {
 
 <div id="config-modal" class="modal-overlay">
     <div class="modal-box" style="text-align: left; max-width: 450px;">
-        <h2 style="text-align: center; margin-bottom: 30px;">Configuration</h2>
+        <h2 id="config-modal-title" style="text-align: center; margin-bottom: 30px;">Configuration</h2>
         
-        <div style="margin-bottom: 20px;">
+        <div id="mode-group" style="margin-bottom: 20px;">
             <label style="font-weight:bold; display:block; margin-bottom:10px;">Mode de jeu</label>
             <select id="config-mode" onchange="toggleDurationDisplay()" style="width:100%;">
                 <option value="coop">🤝 Classique (Coop)</option>
                 <option value="blitz">⚡ Blitz (Chrono)</option>
             </select>
-            <p id="mode-desc" style="font-size: 0.9em; color: var(--text-muted); margin-top: 5px;">
-                Trouvez un mot unique ensemble sans limite de temps.
-            </p>
         </div>
+
+        <p id="mode-desc" style="font-size: 0.9em; color: var(--text-muted); margin-top: 5px; margin-bottom: 20px;">
+            Description du mode...
+        </p>
 
         <div id="duration-group" style="margin-bottom: 30px; display: none;">
             <label style="font-weight:bold; display:block; margin-bottom:10px;">Durée du défi</label>
             <select id="config-duration" style="width:100%;">
-                <option value="30">30 secondes</option>
-                <option value="60" selected>1 minute</option>
-                <option value="120">2 minutes</option>
-                <option value="180">3 minutes</option>
+                <option value="60">1 minute</option>
+                <option value="180" selected>3 minutes</option>
                 <option value="300">5 minutes</option>
-            </select>
+                <option value="600">10 minutes</option> </select>
         </div>
 
         <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-            <button class="btn" onclick="submitDictioConfig()">Lancer</button>
+            <button class="btn" onclick="submitGameConfig()">Lancer</button>
             <button class="btn btn-outline" onclick="closeConfigModal()">Annuler</button>
         </div>
     </div>

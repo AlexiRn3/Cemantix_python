@@ -80,15 +80,16 @@ ws.onmessage = (event) => {
             break;
     }
 
-        if (data.blitz_success) {
+    if (data.blitz_success) {
         // 1. Animation confetti petite
         //triggerConfetti(); 
         // 2. Mettre à jour le score
         document.getElementById('score-display').textContent = data.team_score;
         
-        // 3. Mettre à jour la définition (UI)
+        // 3. Mettre à jour l'interface (UI)
+        // CORRECTION ICI : On utilise le type de jeu actuel au lieu de forcer 'definition'
         initGameUI({ 
-            game_type: 'definition', 
+            game_type: state.gameType, // <--- C'était 'definition' avant
             public_state: data.new_public_state 
         });
         
