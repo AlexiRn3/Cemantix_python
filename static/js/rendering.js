@@ -115,16 +115,14 @@ export function triggerConfetti() {
     }
 }
 
-// static/js/rendering.js
-
 function getIcon(value) {
-    // value est le score sur 1000 (ex: 351 pour 35.19°C)
-    if (value >= 1000) return "💥"; // Trouvé
-    if (value >= 990) return "🔥";  // Brûlant
-    if (value >= 900) return "🥵";  // Très chaud
-    if (value >= 500) return "😎";  // Chaud
-    if (value >= 200) return "🌡️";  // Tiède (Nouveau seuil pour les mots > 20°C)
-    return "❄️"; // Froid (< 20°C)
+    if (value >= 1000) return "💥";
+    if (value >= 990) return "🔥";
+    if (value >= 900) return "🥵";
+    if (value >= 500) return "😎";
+    if (value >= 200) return "🌡️";  // Tiède (à partir de 20°C)
+    if (value >= 0)   return "💧";  // Frais (entre 0°C et 20°C) -> C'est ici qu'on gère le positif faible
+    return "❄️";                    // Gelé (en dessous de 0°C)
 }
 
 function getColor(value) {

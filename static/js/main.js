@@ -96,10 +96,13 @@ function initGameUI(data) {
         if (legendPanel) {
             legendPanel.style.display = "block";
             document.getElementById("legend-content").innerHTML = `
-                <div><span>💥 Top 1000</span> <span>100°C</span></div>
-                <div><span>🥵 Proche</span> <span>90°C</span></div>
-                <div><span>😎 Ça chauffe</span> <span>10°C</span></div>
-                <div><span>❄️ Loin</span> <span>0°C</span></div>
+                <div><span>💥 Top 1</span> <span>100°C</span></div>
+                <div><span>🔥 Brûlant</span> <span>99°C</span></div>
+                <div><span>🥵 Très proche</span> <span>90°C</span></div>
+                <div><span>😎 Ça chauffe</span> <span>50°C</span></div>
+                <div><span>🌡️ Tiède</span> <span>20°C</span></div>
+                <div><span>💧 Frais</span> <span>0°C</span></div>
+                <div><span>❄️ Gelé</span> <span>< 0°C</span></div>
             `;
         }
     }
