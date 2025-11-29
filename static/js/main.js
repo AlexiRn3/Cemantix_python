@@ -111,206 +111,151 @@ if (window.location.pathname === "/game") {
     }
 }
 
-// Fonction pour encapsuler la logique de connexion (pour la propreté)
 function initGameConnection(roomId, playerName) {
     if(document.getElementById("display-room-id")) {
         document.getElementById("display-room-id").textContent = roomId;
     }
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    // Utilisation de encodeURIComponent pour gérer les caractères spéciaux dans le pseudo
     const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
     const ws = new WebSocket(wsUrl);
-
-    // ... (Tout votre code WebSocket existant : ws.onopen, ws.onmessage, etc.) ...
-    // Copiez ici tout le bloc ws.on... jusqu'à la fin de la gestion du socket
     
+    // On stocke le websocket dans l'état global pour pouvoir le fermer si besoin
+    state.websocket = ws;
+
     ws.onopen = () => { console.log("Connecté au WS"); };
     
     ws.onmessage = (event) => {
-        // ... VOTRE CODE WS.ONMESSAGE EXISTANT ICI ...
         const data = JSON.parse(event.data);
-        // ... etc ...
-        // (Je ne remets pas tout le code pour faire court, mais gardez tout ce qu'il y avait)
+
+        if (data.error) {
+            showModal("Erreur", data.message || "Une erreur est survenue");
+            return;
+        }
+
+        switch (data.type) {
+            case "state_sync":
+                initGameUI(data);
+                renderHistory(data.history || []);
+                renderScoreboard(data.scoreboard || []);
+                state.currentMode = data.mode;
+                if (data.mode === "blitz" && data.end_time) {
+                    startTimer(data.end_time);
+                }
+                state.roomLocked = data.locked;
+                state.scoreboard = data.scoreboard;
+                break;
+            case "guess":
+                addEntry({
+                    word: data.word,
+                    temp: data.temperature,
+                    progression: data.progression,
+                    player_name: data.player_name,
+                    feedback: data.feedback,
+                    game_type: data.game_type
+                });
+                if (data.team_score !== undefined) {
+                    const scoreEl = document.getElementById('score-display');
+                    if (scoreEl) scoreEl.textContent = data.team_score;
+                }
+                
+                // Gestion Pendu
+                if (data.game_type === "hangman") {
+                     const wordEl = document.getElementById("hangman-word");
+                     if(wordEl && data.masked_word) wordEl.textContent = data.masked_word;
+                     
+                     const letterPlayed = data.word.toUpperCase();
+                     const btn = document.getElementById(`key-${letterPlayed}`);
+                     if(btn) {
+                         btn.disabled = true;
+                         if (data.similarity > 0 || data.is_correct) btn.className = "key-btn correct";
+                         else btn.className = "key-btn wrong";
+                     }
+                     
+                     const bar = document.getElementById("hangman-battery");
+                     if(bar && data.lives !== undefined) {
+                         const maxLives = 7; 
+                         const pct = Math.max(0, (data.lives / maxLives) * 100);
+                         bar.style.width = `${pct}%`;
+                         if (pct < 30) bar.classList.add("battery-low");
+                         else bar.classList.remove("battery-low");
+                     }
+                }
+
+                if (data.defeat) {
+                    state.locked = true;
+                    state.roomLocked = true;
+                    const bar = document.getElementById("hangman-battery");
+                    if(bar) { bar.style.width = "0%"; bar.classList.add("battery-low"); }
+
+                    setTimeout(() => {
+                        showModal("GAME OVER", `
+                            <div style="text-align:center;">
+                                <p style="font-size:1.2rem; color:var(--text-muted);">Plus de batterie...</p>
+                                <p style="margin-top:20px;">Le mot était :</p>
+                                <h2 style="font-size:2.5rem; color:var(--accent); margin:10px 0;">${data.target_reveal.toUpperCase()}</h2>
+                            </div>
+                        `);
+                        
+                        const actionsDiv = document.getElementById('modal-actions');
+                        if (actionsDiv) {
+                            actionsDiv.innerHTML = `
+                                <div style="display: flex; gap: 10px; justify-content: center;">
+                                    <button id="btn-replay" class="btn">Recommencer</button>
+                                    <button id="btn-hub" class="btn btn-outline">Quitter</button>
+                                </div>
+                            `;
+                            document.getElementById('btn-replay').onclick = function() { sendResetRequest(this); };
+                            document.getElementById('btn-hub').onclick = function() { window.location.href = "/"; };
+                        }
+                    }, 500);
+                }
+                break;
+            case "scoreboard_update":
+                renderScoreboard(data.scoreboard || []);
+                state.currentMode = data.mode || state.currentMode;
+                state.roomLocked = data.locked;
+                state.scoreboard = data.scoreboard;
+                if (data.victory && data.winner) {
+                    handleVictory(data.winner, data.scoreboard);
+                }
+                break;
+            case "victory":
+                handleVictory(data.winner, state.scoreboard || []);
+                break;
+            case "reset_update":
+                updateResetStatus(data);
+                break;
+            case "game_reset":
+                performGameReset(data);
+                if (data.mode === "blitz" && data.end_time) {
+                    startTimer(data.end_time);
+                    const s = document.getElementById('score-display');
+                    if(s) s.textContent = "0";
+                }
+                break;
+        }
+
+        if (data.blitz_success) {
+            const s = document.getElementById('score-display');
+            if(s) s.textContent = data.team_score;
+            
+            initGameUI({ 
+                game_type: state.gameType, 
+                public_state: data.new_public_state 
+            });
+            
+            state.entries = [];
+            renderHistory();
+            addHistoryMessage(`✨ Mot trouvé ! Au suivant !`, 2000);
+        }
     };
 
     ws.onclose = () => {
         setRoomInfo("Déconnecté");
     };
 }
-
-if(document.getElementById("display-room-id")) {
-    document.getElementById("display-room-id").textContent = roomId;
-}
-
-const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
-const ws = new WebSocket(wsUrl);
-
-ws.onopen = () => { console.log("Connecté au WS"); };
-
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-
-    if (data.error) {
-        showModal("Erreur", data.message || "Une erreur est survenue");
-        return;
-    }
-
-    switch (data.type) {
-        case "state_sync":
-            initGameUI(data);
-            renderHistory(data.history || []);
-            renderScoreboard(data.scoreboard || []);
-            state.currentMode = data.mode;
-            if (data.mode === "blitz" && data.end_time) {
-                // On lance le timer avec l'heure de fin reçue du serveur
-                startTimer(data.end_time);
-            }
-            state.roomLocked = data.locked;
-            state.scoreboard = data.scoreboard;
-            break;
-        case "guess":
-            addEntry({
-                word: data.word,
-                temp: data.temperature,
-                progression: data.progression,
-                player_name: data.player_name,
-                feedback: data.feedback,
-                game_type: data.game_type
-            });
-            if (data.team_score !== undefined) {
-                const scoreEl = document.getElementById('score-display');
-                if (scoreEl) scoreEl.textContent = data.team_score;
-            }
-            if (data.defeat) {
-                state.locked = true; // Verrouillage local
-                state.roomLocked = true;
-                
-                // On met à jour la batterie une dernière fois pour qu'elle soit vide visuellement
-                const bar = document.getElementById("hangman-battery");
-                if(bar) {
-                    bar.style.width = "0%"; 
-                    bar.classList.add("battery-low");
-                }
-
-                // On affiche la modale de défaite
-                setTimeout(() => {
-                    showModal("GAME OVER", `
-                        <div style="text-align:center;">
-                            <p style="font-size:1.2rem; color:var(--text-muted);">Plus de batterie...</p>
-                            <p style="margin-top:20px;">Le mot était :</p>
-                            <h2 style="font-size:2.5rem; color:var(--accent); margin:10px 0;">${data.target_reveal.toUpperCase()}</h2>
-                        </div>
-                    `);
-                    
-                    // On ajoute les boutons Rejouer/Hub
-                    const actionsDiv = document.getElementById('modal-actions');
-                    if (actionsDiv) {
-                        actionsDiv.innerHTML = `
-                            <div style="display: flex; gap: 10px; justify-content: center;">
-                                <button id="btn-replay" class="btn">Recommencer</button>
-                                <button id="btn-hub" class="btn btn-outline">Quitter</button>
-                            </div>
-                        `;
-                        document.getElementById('btn-replay').onclick = function() { sendResetRequest(this); };
-                        document.getElementById('btn-hub').onclick = function() { window.location.href = "/"; };
-                    }
-                }, 500); // Petit délai pour voir la batterie tomber à 0
-            }
-            if (data.game_type === "hangman") {
-                 // 1. Mettre à jour le mot masqué
-                 const wordEl = document.getElementById("hangman-word");
-                 // Le backend renvoie 'masked_word' dans le payload grâce au fix précédent
-                 if(wordEl && data.masked_word) {
-                     wordEl.textContent = data.masked_word;
-                 }
-                 
-                 // 2. Mettre à jour la touche du clavier
-                 // data.word contient la lettre jouée (ex: "A")
-                 const letterPlayed = data.word.toUpperCase();
-                 const btn = document.getElementById(`key-${letterPlayed}`);
-                 
-                 if(btn) {
-                     btn.disabled = true;
-                     // Si similarity > 0 (ou is_correct), c'est une bonne lettre -> Vert
-                     // Sinon -> Gris/Rouge
-                     if (data.similarity > 0 || data.is_correct) {
-                         btn.className = "key-btn correct";
-                     } else {
-                         btn.className = "key-btn wrong";
-                     }
-                 }
-                 
-                 // 3. Mettre à jour la batterie
-                 const bar = document.getElementById("hangman-battery");
-                 if(bar && data.lives !== undefined) {
-                     // On utilise data.lives renvoyé par le backend
-                     // Max lives est par défaut 7 (hardcodé ici ou renvoyé par backend si tu veux être précis)
-                     const maxLives = 7; 
-                     const pct = Math.max(0, (data.lives / maxLives) * 100);
-                     bar.style.width = `${pct}%`;
-                     
-                     if (pct < 30) bar.classList.add("battery-low");
-                     else bar.classList.remove("battery-low");
-                 }
-            }
-            break;
-        case "scoreboard_update":
-            renderScoreboard(data.scoreboard || []);
-            state.currentMode = data.mode || state.currentMode;
-            state.roomLocked = data.locked;
-            state.scoreboard = data.scoreboard;
-            if (data.victory && data.winner) {
-                handleVictory(data.winner, data.scoreboard);
-            }
-            break;
-        case "victory":
-            handleVictory(data.winner, state.scoreboard || []);
-            break;
-        case "reset_update":
-            updateResetStatus(data);
-            break;
-        case "game_reset":
-            performGameReset(data);
-            if (data.mode === "blitz" && data.end_time) {
-                startTimer(data.end_time);
-                document.getElementById('score-display').textContent = "0"; // Reset visuel du score
-            }
-            break;
-    }
-
-    if (data.blitz_success) {
-        // 1. Animation confetti petite
-        //triggerConfetti(); 
-        // 2. Mettre à jour le score
-        document.getElementById('score-display').textContent = data.team_score;
-        
-        // 3. Mettre à jour l'interface (UI)
-        // CORRECTION ICI : On utilise le type de jeu actuel au lieu de forcer 'definition'
-        initGameUI({ 
-            game_type: state.gameType, // <--- C'était 'definition' avant
-            public_state: data.new_public_state 
-        });
-        
-        // 4. Vider l'historique visuel pour le nouveau mot
-        state.entries = [];
-        renderHistory();
-        
-        addHistoryMessage(`✨ Mot trouvé ! Au suivant !`, 2000);
-    }
-    if (data.game_type === "hangman") {
- 
-        const bar = document.getElementById("hangman-battery");
-        if(bar) bar.style.width = `${data.temperature}%`;
-        
-        const btn = document.getElementById(`key-${data.word.toUpperCase()}`);
-        if(btn) {
-            btn.disabled = true;
-            if(data.similarity > 0) btn.style.borderColor = "var(--success)"; // Bonne lettre
-            else btn.style.borderColor = "var(--text-muted)"; // Mauvaise lettre
-        }
-    }
-};
 
 function initGameUI(data) {
     // 1. Mise à jour de l'état global
@@ -917,10 +862,15 @@ function launchDictio() {
     createGame('definition', mode, duration);
 }
 
-async function createGame(type, mode = 'coop', duration = 0) {
+window.createGame = async function(type, mode = 'coop', duration = 0) {
     if (!verifierPseudo()) return;
-    const name = document.getElementById('player-name').value;
-    if(!name) return showModal("Pseudo Requis", "Identifiez-vous avant de commencer une session.");
+    
+    // CORRECTION : On vérifie si l'input existe, sinon on utilise le currentUser stocké
+    const nameInput = document.getElementById('player-name');
+    let name = nameInput ? nameInput.value : currentUser;
+    
+    // Si l'input est vide mais qu'on a un currentUser, on l'utilise
+    if(!name && currentUser) name = currentUser;
     
     const res = await fetch('/rooms', {
         method: 'POST',
@@ -929,13 +879,18 @@ async function createGame(type, mode = 'coop', duration = 0) {
     });
     const data = await res.json();
     window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(name)}`;
-}
+};
 
 document.getElementById('btn-join').onclick = () => {
     if (!verifierPseudo()) return;
-    const name = document.getElementById('player-name').value;
+    
+    // CORRECTION : Même sécurisation que pour createGame
+    const nameInput = document.getElementById('player-name');
+    let name = nameInput ? nameInput.value : currentUser;
+    if(!name && currentUser) name = currentUser;
+
     const room = document.getElementById('room-id').value;
-    if(!name || !room) return showModal("Données Manquantes", "Le pseudo et l'ID de room sont nécessaires pour la synchronisation.");
+    if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");
     window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
 };
 
