@@ -69,49 +69,168 @@ class CemantixEngine(GameEngine):
 
 # --- Definition Game Implementation ---
 class DefinitionEngine(GameEngine):
-    def __init__(self):
-        self.dictionary = [
-            {"word": "python", "def": "Langage de programmation interprété très populaire."},
-            {"word": "ordinateur", "def": "Machine électronique de traitement de l'information."},
-            {"word": "clavier", "def": "Périphérique permettant la saisie de caractères."},
-            {"word": "internet", "def": "Réseau informatique mondial."},
-            {"word": "algorithme", "def": "Suite d'instructions permettant de résoudre un problème."},
-            {"word": "boulangerie", "def": "Commerce où l'on vend du pain."},
-            {"word": "montagne", "def": "Élévation naturelle du sol très importante."},
-            {"word": "liberte", "def": "Pouvoir d'agir sans contrainte étrangère."},
-        ]
-        self.target: Optional[Dict[str, str]] = None
+    def __init__(self, model):
+        self.model = model
+        self.target_word: Optional[str] = None
+        self.definition: Optional[str] = None
 
+    # -------------------------------------------------------
+    # 1) Vérifier existence du mot sur le Wiktionnaire
+    # -------------------------------------------------------
+    def _wiktionary_exists(self, word: str) -> bool:
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/123.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.5,en;q=0.3",
+            "Referer": "https://fr.wiktionary.org/",
+            "Connection": "keep-alive"
+        }
+
+
+        url = (
+            "https://fr.wiktionary.org/w/api.php?"
+            f"action=query&titles={quote(word)}"
+            "&prop=pageprops&format=json&formatversion=2"
+        )
+        print(f"[WKT] Vérifie existence : {url}")
+
+        try:
+            r = requests.get(url, timeout=4, headers=headers)
+            print(r.status_code)
+            if r.status_code != 200:
+                print(r.status_code)
+                return False
+
+            data = r.json()
+        except Exception as e:
+            print(f"[WKT] Exception: {e}")
+            return False
+
+        pages = data.get("query", {}).get("pages", [])
+        if not pages:
+            print("[WKT] Aucune page renvoyée.")
+            return False
+
+        if pages[0].get("missing", False):
+            print("[WKT] Mot inexistant dans Wiktionnaire.")
+            return False
+
+        print("[WKT] Mot trouvé.")
+        return True
+
+    # -------------------------------------------------------
+    # 2) Extraire une définition simple du Wiktionnaire
+    # -------------------------------------------------------
+    def _wiktionary_definition(self, word: str) -> Optional[str]:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/123.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.5,en;q=0.3",
+            "Referer": "https://fr.wiktionary.org/",
+            "Connection": "keep-alive"
+        }
+
+        url = (
+            "https://fr.wiktionary.org/w/api.php?"
+            f"action=parse&page={quote(word)}"
+            "&prop=wikitext&format=json"
+        )
+        print(f"[WKT] Récupère définition : {url}")
+
+        try:
+            data = requests.get(url, timeout=4, headers=headers).json()
+        except Exception as e:
+            print(f"[WKT] Exception: {e}")
+            return None
+
+        wikitext = data.get("parse", {}).get("wikitext", {}).get("*")
+        if not wikitext:
+            print("[WKT] Pas de wikitext.")
+            return None
+
+        # On récupère la première ligne commençant par "# "
+        lines = wikitext.split("\n")
+        defs = [l[2:].strip() for l in lines if l.startswith("# ")]
+
+        if defs:
+            print(f"[WKT] Définition trouvée : {defs[0]}")
+            return defs[0]
+
+        print("[WKT] Aucune définition exploitable.")
+        return None
+
+    # -------------------------------------------------------
+    # 3) Sélection d’un mot dans le modèle + Wiktionnaire
+    # -------------------------------------------------------
     def new_game(self):
-        self.target = random.choice(self.dictionary)
-        print(f"[DEF] Mot cible : {self.target['word']}")
+        print("[DEF] Nouveau jeu de définitions")
 
-    def next_word(self):
-        self.new_game()
+        vocab = list(self.model.key_to_index.keys())
 
+        frequent_words = [
+            w for w in vocab
+            if 4 <= len(w) <= 12
+            and re.fullmatch(r"[a-zàâçéèêëîïôûùüÿñæœ]+", w)
+            and self.model.get_vecattr(w, "count") > 50000
+        ]
+        print(f"[DEF] {len(frequent_words)} mots fréquents sélectionnés")
+
+        # Essayer jusqu’à trouver un mot valide
+        for attempt in range(10):
+            candidate = random.choice(frequent_words)
+            print(f"[DEF] Tentative {attempt+1}/10 → Mot choisi : {candidate}")
+
+            if not self._wiktionary_exists(candidate):
+                continue
+
+            definition = self._wiktionary_definition(candidate)
+            if definition:
+                print(f"[DEF] Succès → {candidate} : {definition}")
+                self.target_word = candidate
+                self.definition = definition
+                return
+
+        # Fallback si rien trouvé
+        print("[DEF] Impossible de trouver un mot valide.")
+        self.target_word = None
+        self.definition = None
+
+    # -------------------------------------------------------
+    # 4) Guess
+    # -------------------------------------------------------
     def guess(self, word: str) -> Dict[str, Any]:
-        if not self.target:
-            return {"exists": False, "error": "Jeu non initialisé"}
+        if not self.target_word:
+            return {"exists": False, "error": "Aucun jeu actif"}
 
-        # Nettoyage basique
+        print(f"[DEF] Guess reçu : {word}")
+
         w_clean = word.lower().strip()
-        t_clean = self.target["word"].lower().strip()
-        
+        t_clean = self.target_word.lower().strip()
+
         if w_clean == t_clean:
+            print("[DEF] Réponse correcte !")
             return {
-                "exists": True, 
-                "similarity": 1.0, 
-                "temperature": 100.0, 
+                "exists": True,
+                "similarity": 1.0,
+                "temperature": 100.0,
                 "is_correct": True,
                 "feedback": "Correct !"
             }
-        
-        # Indice simple
-        feedback = "Incorrect"
+
+        # Feedback
         if len(w_clean) == len(t_clean):
             feedback = "Bonne longueur"
-        elif t_clean.startswith(w_clean[:2]):
-             feedback = "Bon début"
+        elif w_clean[:2] == t_clean[:2] and len(w_clean) >= 2:
+            feedback = "Bon début"
+        else:
+            feedback = "Incorrect"
+
+        print(f"[DEF] Mauvaise réponse → Feedback : {feedback}")
 
         return {
             "exists": True,
@@ -121,14 +240,24 @@ class DefinitionEngine(GameEngine):
             "feedback": feedback
         }
 
+    # -------------------------------------------------------
+    # 5) État public
+    # -------------------------------------------------------
     def get_public_state(self) -> Dict[str, Any]:
-        if not self.target:
-            return {}
-        return {
+        if not self.target_word:
+            return {"error": "Aucun mot disponible"}
+
+        state = {
             "game_type": "definition",
-            "hint": self.target["def"],
-            "word_length": len(self.target["word"])
+            "hint": self.definition,
+            "word_length": len(self.target_word)
         }
+        print(f"[DEF] État public : {state}")
+        return state
+
+    def next_word(self):
+        self.new_game()
+
 
 # core/games.py
 # Ajoutez les imports manquants si besoin (déjà présents normalement : random, re)
