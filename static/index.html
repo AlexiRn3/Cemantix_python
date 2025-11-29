@@ -2,83 +2,52 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cémantix</title>
+    <title>En Jeu</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-<nav class="top-nav">
-    <a class="nav-link nav-link-active" href="/">Cémantix</a>
-    <a class="nav-link" href="/hub">Hub</a>
+<nav style="padding: 20px;">
+    <a href="/" style="color: white; text-decoration: none;">&larr; Retour au Hub</a>
 </nav>
 
-<div class="layout">
+<div class="container">
+    <div class="game-header">
+        <h1 id="game-title">Chargement...</h1>
+        <div id="room-badge" style="display:inline-block; background:rgba(255,255,255,0.1); padding: 5px 10px; border-radius:20px; font-size:0.9rem;">
+            Room ID: <span id="display-room-id">...</span>
+        </div>
+    </div>
 
-    <aside id="legend-panel" class="legend">
-        <h2>Légende</h2>
-        <table class="legend-table">
-            <thead>
-                <tr><th>#</th><th>&nbsp;</th><th>°C</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1000</td><td>💥</td><td>100</td></tr>
-                <tr><td>999</td><td>🥵</td><td>54</td></tr>
-                <tr><td>990</td><td>🔥</td><td>43</td></tr>
-                <tr><td>900</td><td>🌡️</td><td>28</td></tr>
-                <tr><td>1</td><td>😎</td><td>17</td></tr>
-                <tr><td>0</td><td>🧊</td><td>0</td></tr>
-                <tr><td>-1</td><td>❄️</td><td>-100</td></tr>
-            </tbody>
-        </table>
-    </aside>
+    <div id="game-instruction" class="game-instruction-box" style="display:none">
+        <p class="def-text" id="definition-text"></p>
+        <p id="hint-text" style="margin-top:10px; opacity:0.7"></p>
+    </div>
 
-    <main id="container" class="game-area">
-        <div class="room-panel">
-            <div class="room-form">
-                <div>
-                    <label for="player-name">Pseudo</label>
-                    <input id="player-name" type="text" placeholder="Pseudo...">
-                </div>
-                <div>
-                    <label for="mode-select">Mode</label>
-                    <select id="mode-select">
-                        <option value="coop">Coop</option>
-                        <option value="race">Course</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="room-id-input">Room ID</label>
-                    <input id="room-id-input" type="text" placeholder="Ex: 1234...">
-                </div>
-            </div>
-            
-            <div class="room-actions">
-                <button id="create-room" type="button">Créer</button>
-                <button id="join-room" type="button" class="ghost">Rejoindre</button>
-            </div>
-            <div id="room-info" class="room-info" style="margin-top:10px; color:var(--accent-color);"></div>
+    <div class="game-layout">
+        
+        <div class="panel">
+            <h3>Joueurs</h3>
+            <div id="scoreboard"></div>
         </div>
 
-        <form id="form">
-            <input id="word" type="text" placeholder="Entrez un mot..." autocomplete="off" autofocus>
-            <button type="submit">Envoyer</button>
-        </form>
+        <div class="game-area">
+            <form id="guess-form" class="guess-form">
+                <input type="text" id="word-input" placeholder="Tapez votre mot..." autocomplete="off" autofocus>
+                <button type="submit" class="btn">Essayer</button>
+            </form>
+            <div id="messages" style="margin-bottom: 15px; min-height: 20px; color: var(--accent);"></div>
+            <div id="history" class="history-list"></div>
+        </div>
 
-        <div id="messages" class="messages"></div>
-        <div id="history">
-            </div>
-    </main>
-
-    <aside class="scoreboard-panel">
-        <h2>Classement</h2>
-        <div id="scoreboard" class="scoreboard-table"></div>
-    </aside>
-
+        <div class="panel" id="legend-panel">
+            <h3>Légende</h3>
+            <div id="legend-content"></div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script type="module" src="/static/js/main.js"></script>
-
 </body>
 </html>

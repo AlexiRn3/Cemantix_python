@@ -4,16 +4,22 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
-from typing import Dict, List
+from typing import Dict, List, Any, Optional
 
 from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
 
-
 app = FastAPI()
 
-loader = ModelLoader("model/frWac_no_postag_phrase_500_cbow_cut10_stripped.bin")
-model = loader.load()
+# Chargement du modèle avec gestion d'erreur si le fichier est absent
+try:
+    loader = ModelLoader("model/frWac_no_postag_phrase_500_cbow_cut10_stripped.bin")
+    model = loader.load()
+    print("Modèle chargé avec succès.")
+except Exception as e:
+    print(f"Attention: Modèle non chargé ({e}). Seul le mode 'definition' fonctionnera.")
+    model = None
+
 room_manager = RoomManager(model)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -21,6 +27,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class CreateRoomRequest(BaseModel):
     player_name: str
     mode: str = "coop"
+    game_type: str = "cemantix"
 
 
 class GuessRequest(BaseModel):
@@ -31,22 +38,19 @@ class GuessRequest(BaseModel):
 class RoomConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, List[WebSocket]] = {}
-        self.players: Dict[WebSocket, str] = {}
         self.lock = asyncio.Lock()
 
-    async def connect(self, room_id: str, websocket: WebSocket, player_name: str):
+    async def connect(self, room_id: str, websocket: WebSocket):
         await websocket.accept()
         async with self.lock:
             self.active_connections.setdefault(room_id, []).append(websocket)
-            self.players[websocket] = player_name
 
     def disconnect(self, room_id: str, websocket: WebSocket):
-        if room_id in self.active_connections and websocket in self.active_connections[room_id]:
-            self.active_connections[room_id].remove(websocket)
-        if websocket in self.players:
-            del self.players[websocket]
+        if room_id in self.active_connections:
+            if websocket in self.active_connections[room_id]:
+                self.active_connections[room_id].remove(websocket)
 
-    async def broadcast(self, room_id: str, message: Dict):
+    async def broadcast(self, room_id: str, message: Dict[str, Any]):
         connections = list(self.active_connections.get(room_id, []))
         for connection in connections:
             try:
@@ -58,12 +62,6 @@ class RoomConnectionManager:
 connections = RoomConnectionManager()
 
 
-def normalize_mode(mode: str) -> str:
-    if mode not in {"coop", "race"}:
-        return "coop"
-    return mode
-
-
 def build_scoreboard(room: RoomState):
     scoreboard = [
         {
@@ -73,55 +71,47 @@ def build_scoreboard(room: RoomState):
         }
         for name, stats in room.players.items()
     ]
-    scoreboard.sort(key=lambda x: (-x["best_similarity"], -x["attempts"]))
+    # Tri : meilleure similarité d'abord, puis nombre d'essais croissant
+    scoreboard.sort(key=lambda x: (-x["best_similarity"], x["attempts"]))
     return scoreboard
 
 
-def build_history_payload(room: RoomState):
-    history_payload = []
-    for entry in room.history:
-        progression = int(round(entry.similarity * 1000)) if entry.similarity is not None else 0
-        history_payload.append(
-            {
-                "word": entry.word,
-                "player_name": entry.player_name,
-                "temperature": entry.temperature,
-                "progression": progression,
-            }
-        )
-    return history_payload
-
-
-def build_victory_message(room: RoomState, player_name: str, victory: bool):
-    if not victory:
-        return None
+def build_victory_message(room: RoomState, player_name: str):
     return {
         "type": "victory",
         "mode": room.mode,
         "player_name": player_name,
         "room_id": room.room_id,
+        "winner": player_name
     }
 
 
-def process_guess(room: RoomState, word: str, player_name: str):
-    if room.mode == "race" and room.locked:
+# Ajout du typage de retour explicite -> Dict[str, Any] pour corriger l'erreur Pylance
+def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any]:
+    if room.locked:
         return {"error": "room_locked", "message": "Cette room est verrouillée"}
 
     result = room.engine.guess(word)
-    similarity = result.get("similarity") if result.get("exists") else None
-    temperature = result.get("temperature") if result.get("exists") else None
+    
+    if not result.get("exists"):
+        return {"error": "unknown_word", "message": result.get("error", "Mot inconnu")}
 
-    room.record_guess(word, player_name, similarity, temperature)
+    similarity = result.get("similarity", 0.0)
+    temperature = result.get("temperature", 0.0)
+    feedback = result.get("feedback", "")
+    victory = result.get("is_correct", False)
 
-    victory = False
-    if result.get("exists") and similarity is not None and similarity >= 0.99:
-        victory = True
-        if room.mode == "race":
+    # Enregistrement dans l'état de la room
+    room.record_guess(word, player_name, similarity, temperature, feedback)
+
+    if victory:
+        if room.mode == "race" or room.mode == "coop":
             room.locked = True
 
-    room_manager.persist_room(room.room_id)
+    # room_manager.persist_room(room.room_id) # Optionnel
 
-    progression = int(round(similarity * 1000)) if similarity is not None else 0
+    progression = int(round(similarity * 1000)) if room.game_type == "cemantix" else 0
+    
     guess_payload = {
         "type": "guess",
         "word": word,
@@ -129,7 +119,10 @@ def process_guess(room: RoomState, word: str, player_name: str):
         "temperature": temperature,
         "similarity": similarity,
         "progression": progression,
+        "feedback": feedback,
+        "game_type": room.game_type
     }
+    
     return {
         "result": {**result, "progression": progression},
         "guess_payload": guess_payload,
@@ -139,22 +132,32 @@ def process_guess(room: RoomState, word: str, player_name: str):
 
 
 @app.get("/", response_class=HTMLResponse)
-def home():
-    with open("static/index.html", "r", encoding="utf-8") as f:
-        return f.read()
-
-
-@app.get("/hub", response_class=HTMLResponse)
 def hub_page():
     with open("static/hub.html", "r", encoding="utf-8") as f:
         return f.read()
 
 
+@app.get("/game", response_class=HTMLResponse)
+def game_page():
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
 @app.post("/rooms")
 def create_room(payload: CreateRoomRequest):
-    mode = normalize_mode(payload.mode)
-    room = room_manager.create_room(mode, payload.player_name)
-    return {"room_id": room.room_id, "mode": room.mode, "scoreboard": build_scoreboard(room)}
+    # Vérification du modèle pour Cémantix
+    if payload.game_type == "cemantix" and model is None:
+        return JSONResponse(status_code=500, content={"message": "Le modèle Cémantix n'est pas chargé sur le serveur."})
+
+    mode = payload.mode if payload.mode in {"coop", "race"} else "coop"
+    room = room_manager.create_room(payload.game_type, mode, payload.player_name)
+    
+    return {
+        "room_id": room.room_id, 
+        "mode": room.mode, 
+        "scoreboard": build_scoreboard(room),
+        "game_type": room.game_type
+    }
 
 
 @app.post("/rooms/{room_id}/guess")
@@ -164,11 +167,16 @@ async def guess(room_id: str, payload: GuessRequest):
         return JSONResponse(status_code=404, content={"error": "room_not_found", "message": "Room inconnue"})
 
     result_data = process_guess(room, payload.word.strip().lower(), payload.player_name)
+    
     if result_data.get("error"):
         return JSONResponse(status_code=400, content=result_data)
 
+    # Ici result_data est garanti d'être le dictionnaire de succès grâce au check précédent
     await connections.broadcast(room_id, result_data["guess_payload"])
-    victory_message = build_victory_message(room, payload.player_name, result_data["victory"])
+    
+    victory = result_data.get("victory", False)
+    
+    # Mise à jour du scoreboard pour tout le monde
     await connections.broadcast(
         room_id,
         {
@@ -176,12 +184,14 @@ async def guess(room_id: str, payload: GuessRequest):
             "scoreboard": result_data["scoreboard"],
             "mode": room.mode,
             "locked": room.locked,
-            "victory": result_data["victory"],
-            "winner": payload.player_name if result_data["victory"] else None,
+            "victory": victory,
+            "winner": payload.player_name if victory else None,
         },
     )
-    if victory_message:
-        await connections.broadcast(room_id, victory_message)
+    
+    if victory:
+        victory_msg = build_victory_message(room, payload.player_name)
+        await connections.broadcast(room_id, victory_msg)
 
     return {
         **result_data["result"],
@@ -208,65 +218,59 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         await websocket.close()
         return
 
-    await connections.connect(room_id, websocket, player_name)
+    await connections.connect(room_id, websocket)
     room.add_player(player_name)
-    room_manager.persist_room(room.room_id)
-    await connections.broadcast(
-        room_id,
-        {
+    
+    # Récupération de l'état initial spécifique au jeu (ex: définition)
+    public_state = room.engine.get_public_state()
+
+    # Reconstruction de l'historique pour le nouveau venu
+    history_payload = []
+    for entry in room.history:
+        progression = int(round(entry.similarity * 1000)) if entry.similarity is not None else 0
+        history_payload.append(
+            {
+                "word": entry.word,
+                "player_name": entry.player_name,
+                "temperature": entry.temperature,
+                "progression": progression,
+                "feedback": entry.feedback,
+                "game_type": room.game_type
+            }
+        )
+
+    # Envoi de l'état initial (Sync)
+    try:
+        await websocket.send_json(
+            {
+                "type": "state_sync",
+                "history": history_payload,
+                "scoreboard": build_scoreboard(room),
+                "mode": room.mode,
+                "locked": room.locked,
+                "game_type": room.game_type,
+                "public_state": public_state
+            }
+        )
+        
+        # On notifie les autres qu'un joueur est là (via update scoreboard)
+        await connections.broadcast(room_id, {
             "type": "scoreboard_update",
             "scoreboard": build_scoreboard(room),
             "mode": room.mode,
             "locked": room.locked,
             "victory": False,
-            "winner": None,
-        },
-    )
+            "winner": None
+        })
 
-    try:
-        await websocket.send_json(
-            {
-                "type": "state_sync",
-                "history": build_history_payload(room),
-                "scoreboard": build_scoreboard(room),
-                "mode": room.mode,
-                "locked": room.locked,
-            }
-        )
-
+        # Boucle principale : on garde la connexion ouverte
         while True:
-            data = await websocket.receive_json()
-            word = data.get("word")
-            if not word:
-                await websocket.send_json({"type": "error", "error": "invalid_payload", "message": "Mot manquant"})
-                continue
-
-            result_data = process_guess(room, word.strip().lower(), player_name)
-            if result_data.get("error"):
-                await websocket.send_json(result_data)
-                continue
-
-            await connections.broadcast(room_id, result_data["guess_payload"])
-            victory_message = build_victory_message(room, player_name, result_data["victory"])
-            scoreboard_payload = {
-                "type": "scoreboard_update",
-                "scoreboard": result_data["scoreboard"],
-                "mode": room.mode,
-                "locked": room.locked,
-                "victory": result_data["victory"],
-                "winner": player_name if result_data["victory"] else None,
-            }
-            await connections.broadcast(room_id, scoreboard_payload)
-            if victory_message:
-                await connections.broadcast(room_id, victory_message)
-
-            await websocket.send_json({"type": "ack", **result_data["result"]})
+            # On ignore les messages entrants car tout passe par l'API REST /guess
+            # Mais on doit garder le socket ouvert pour recevoir les broadcast
+            await websocket.receive_text()
+            
     except WebSocketDisconnect:
         connections.disconnect(room_id, websocket)
     except Exception:
         connections.disconnect(room_id, websocket)
-        raise
-
-
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=1256, reload=True)
+        # On ne raise pas pour éviter de polluer les logs si c'est juste une déconnexion
