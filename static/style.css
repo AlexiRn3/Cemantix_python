@@ -388,3 +388,14 @@ input::placeholder { color: var(--text-muted); opacity: 0.5; }
     }
     .hero h1 { font-size: 3rem; }
 }
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.error-shake {
+    animation: shake 0.3s ease-in-out;
+    border-bottom-color: var(--accent) !important; /* Ligne rouge/orange */
+}
