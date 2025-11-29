@@ -4,10 +4,14 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write   # Nécessaire pour uploader un asset
+
 jobs:
   build:
     name: Build deployment package
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,12 +43,23 @@ jobs:
           name: cemantix-python
           path: dist/cemantix-python.tar.gz
 
-      - name: Attach archive to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Attach asset to release
+        uses: actions/github-script@v7
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist/cemantix-python.tar.gz
-          asset_name: cemantix-python.tar.gz
-          asset_content_type: application/gzip
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const path = 'dist/cemantix-python.tar.gz';
+            const release_id = context.payload.release.id;
+
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id,
+              name: 'cemantix-python.tar.gz',
+              data: fs.readFileSync(path),
+              headers: {
+                'content-type': 'application/gzip',
+                'content-length': fs.statSync(path).size
+              }
+            });
