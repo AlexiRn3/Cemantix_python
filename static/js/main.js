@@ -106,11 +106,7 @@ function initGameUI(data) {
     state.gameType = data.game_type;
 
     // 2. Gestion du Titre
-    const titles = { 
-        "cemantix": "Cémantix", 
-        "definition": "Dictionnario",
-        "intruder": "L'Intrus" 
-    };
+    const titles = { "cemantix": "Cémantix", "definition": "Dictionnario", "intruder": "L'Intrus" };
     const titleEl = document.getElementById("game-title");
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
 
@@ -118,7 +114,8 @@ function initGameUI(data) {
     const form = document.getElementById("guess-form");
     const instrBox = document.getElementById("game-instruction");
     const legendPanel = document.getElementById("legend-panel");
-    const intruderArea = document.getElementById("intruder-area"); // Le nouveau conteneur pour l'Intrus
+    const intruderArea = document.getElementById("intruder-area");
+    const gameLayout = document.querySelector(".game-layout");
 
     // 4. Réinitialisation de l'affichage (Tout masquer par précaution)
     if (form) form.style.display = "flex"; // Par défaut on affiche le formulaire
@@ -128,11 +125,13 @@ function initGameUI(data) {
 
     // 5. Logique spécifique par mode de jeu
     if (data.game_type === "intruder") {
-        // --- MODE L'INTRUS ---
-        if (form) form.style.display = "none"; // On cache l'input texte car on joue à la souris
+        if (form) form.style.display = "none";
+        
+        // AJOUT : On active le mode centré
+        if (gameLayout) gameLayout.classList.add("intruder-focus");
+
         if (intruderArea) {
             intruderArea.style.display = "block";
-            // On appelle la fonction de rendu de la grille (définie plus bas dans main.js)
             if (typeof renderIntruderGrid === "function" && data.public_state) {
                 renderIntruderGrid(data.public_state.options);
             }
@@ -173,14 +172,17 @@ function renderIntruderGrid(options) {
         const btn = document.createElement("button");
         btn.className = "intruder-btn";
         btn.textContent = word;
-        btn.onclick = () => submitIntruderGuess(word);
+        btn.onclick = () => submitIntruderGuess(word, btn);
         grid.appendChild(btn);
     });
 }
 
 // 3. Fonction d'envoi du guess (similaire au submit du formulaire)
-async function submitIntruderGuess(word) {
+async function submitIntruderGuess(word, buttonElement) {
     if (state.locked) return;
+
+    // Petit effet visuel immédiat pour dire "j'ai cliqué"
+    buttonElement.disabled = true; // Évite le double clic
 
     try {
         const res = await fetch(`/rooms/${roomId}/guess`, {
@@ -192,14 +194,24 @@ async function submitIntruderGuess(word) {
         
         if (data.error) {
             showModal("Oups", data.message);
+            buttonElement.disabled = false; // Réactive si erreur technique
         } else {
-            // Si c'est pas la victoire, on peut faire un petit effet visuel
             if (!data.is_correct) {
-                addHistoryMessage(`❌ "${word}" n'est pas l'intrus !`, 1000);
+                // CAS : MAUVAISE RÉPONSE -> ROUGE
+                buttonElement.classList.add("wrong");
+                // On réactive le bouton après un petit délai si on veut permettre de spammer, 
+                // ou on le laisse désactivé pour dire "ce n'est pas celui là".
+                // Ici je le laisse désactivé "wrong" pour montrer qu'il a été éliminé.
+            } else {
+                // CAS : BONNE RÉPONSE -> VERT
+                buttonElement.classList.add("correct");
+                // Le passage au mot suivant se fera via le WebSocket (data.blitz_success)
+                // qui va recharger toute la grille.
             }
         }
     } catch (err) {
         console.error(err);
+        buttonElement.disabled = false;
     }
 }
 
