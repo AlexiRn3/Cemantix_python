@@ -193,7 +193,7 @@ async function submitIntruderGuess(word) {
             showModal("Oups", data.message);
         } else {
             // Si c'est pas la victoire, on peut faire un petit effet visuel
-            if (!data.victory) {
+            if (!data.is_correct) {
                 addHistoryMessage(`❌ "${word}" n'est pas l'intrus !`, 1000);
             }
         }
