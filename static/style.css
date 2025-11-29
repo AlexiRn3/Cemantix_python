@@ -512,3 +512,42 @@ input::placeholder { color: #ccc; opacity: 1; }
 .intruder-btn:active {
     transform: scale(0.98);
 }
+
+/* --- Mode Intrus Spécifique --- */
+
+/* Centrer le jeu en masquant les colonnes latérales */
+.game-layout.intruder-focus {
+    display: flex; /* Remplace le grid */
+    justify-content: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.game-layout.intruder-focus .panel, 
+.game-layout.intruder-focus #history {
+    display: none !important; /* On cache l'historique et les panneaux */
+}
+
+.game-layout.intruder-focus .game-area {
+    width: 100%;
+}
+
+/* Grille plus large et centrée */
+.game-layout.intruder-focus .intruder-grid {
+    gap: 30px;
+}
+
+/* Styles des boutons (Succès / Erreur) */
+.intruder-btn.wrong {
+    background-color: #fee2e2;
+    border-color: #ef4444;
+    color: #b91c1c;
+    animation: shake 0.4s ease-in-out;
+}
+
+.intruder-btn.correct {
+    background-color: #dcfce7;
+    border-color: #22c55e;
+    color: #15803d;
+    transform: scale(1.05);
+}
