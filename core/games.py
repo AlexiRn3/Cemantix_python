@@ -31,7 +31,7 @@ class CemantixEngine(GameEngine):
             w for w in vocab
             if 4 <= len(w) <= 8
             and re.fullmatch(r"[a-zàâçéèêëîïôûùüÿñæœ]+", w)
-            and self.model.get_vecattr(w, "count") > 8000
+            and self.model.get_vecattr(w, "count") > 20000
         ]
         self.target_word = random.choice(frequent_words)
         print(f"[CEMANTIX] Mot cible : {self.target_word}")
