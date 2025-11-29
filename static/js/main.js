@@ -59,6 +59,41 @@ ws.onmessage = (event) => {
                 const scoreEl = document.getElementById('score-display');
                 if (scoreEl) scoreEl.textContent = data.team_score;
             }
+            if (data.defeat) {
+                state.locked = true; // Verrouillage local
+                state.roomLocked = true;
+                
+                // On met à jour la batterie une dernière fois pour qu'elle soit vide visuellement
+                const bar = document.getElementById("hangman-battery");
+                if(bar) {
+                    bar.style.width = "0%"; 
+                    bar.classList.add("battery-low");
+                }
+
+                // On affiche la modale de défaite
+                setTimeout(() => {
+                    showModal("GAME OVER", `
+                        <div style="text-align:center;">
+                            <p style="font-size:1.2rem; color:var(--text-muted);">Plus de batterie...</p>
+                            <p style="margin-top:20px;">Le mot était :</p>
+                            <h2 style="font-size:2.5rem; color:var(--accent); margin:10px 0;">${data.target_reveal.toUpperCase()}</h2>
+                        </div>
+                    `);
+                    
+                    // On ajoute les boutons Rejouer/Hub
+                    const actionsDiv = document.getElementById('modal-actions');
+                    if (actionsDiv) {
+                        actionsDiv.innerHTML = `
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <button id="btn-replay" class="btn">Recommencer</button>
+                                <button id="btn-hub" class="btn btn-outline">Quitter</button>
+                            </div>
+                        `;
+                        document.getElementById('btn-replay').onclick = function() { sendResetRequest(this); };
+                        document.getElementById('btn-hub').onclick = function() { window.location.href = "/"; };
+                    }
+                }, 500); // Petit délai pour voir la batterie tomber à 0
+            }
             if (data.game_type === "hangman") {
                  // 1. Mettre à jour le mot masqué
                  const wordEl = document.getElementById("hangman-word");
@@ -397,6 +432,9 @@ function performGameReset(data) {
         elements.input.value = "";
         elements.input.focus();
     }
+
+    const kb = document.getElementById("hangman-keyboard");
+    if (kb) kb.innerHTML = "";
 
     // 4. Reset UI spécifique
     initGameUI({ 

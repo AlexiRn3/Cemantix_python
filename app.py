@@ -110,12 +110,25 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
     feedback = result.get("feedback", "")
     victory = result.get("is_correct", False)
 
+    # --- AJOUT : DÉTECTION DÉFAITE ---
+    defeat = False
+    target_reveal = ""
+    
+    if room.game_type == "hangman":
+        # Si on a 0 vies ou moins, et que ce n'est pas une victoire
+        if result.get("lives", 1) <= 0 and not victory:
+            defeat = True
+            room.locked = True # On verrouille la room
+            # On récupère le mot pour l'afficher aux joueurs
+            target_reveal = getattr(room.engine, "target_word", "???")
+
     # Enregistrement dans l'état de la room
     room.record_guess(word, player_name, similarity, temperature, feedback)
 
     blitz_data = {}
 
     if victory:
+        pass
         if room.mode == "blitz":
             # En Blitz : On incrémente le score et on change de mot
             room.team_score += 1
@@ -148,6 +161,8 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "feedback": feedback,
         "game_type": room.game_type,
         "team_score": room.team_score,
+        "defeat": defeat,
+        "target_reveal": target_reveal,
         **result,
         **blitz_data  # <--- C'EST ICI LA CLÉ : on fusionne les infos de victoire dans le message
     }
