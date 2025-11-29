@@ -878,3 +878,31 @@ input::placeholder { color: #ccc; opacity: 1; }
     background: var(--success);
     color: white;
 }
+
+/* --- Logout & Locked Inputs --- */
+.btn-danger {
+    background-color: #ff7675;
+    color: white;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+    margin-top: 10px;
+}
+.btn-danger:hover {
+    background-color: #d63031;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(214, 48, 49, 0.3);
+}
+
+input:disabled {
+    background-color: #f0f0f0;
+    color: #b2bec3;
+    cursor: not-allowed;
+    border-color: #dfe6e9;
+}
+
+.locked-message {
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-top: 5px;
+    font-style: italic;
+}
