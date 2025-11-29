@@ -1,18 +1,53 @@
 import { elements } from "./dom.js";
 import { state } from "./state.js";
-import { addHistoryMessage, setRoomInfo, showModal } from "./ui.js";
+import { addHistoryMessage, setRoomInfo, showModal, closeModal } from "./ui.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti } from "./rendering.js";
 
-// ... (Le début du fichier : Initialisation, WebSocket reste inchangé) ...
-// ... (Copiez le code existant jusqu'à handleVictory) ...
 
 const params = new URLSearchParams(window.location.search);
 const roomId = params.get("room");
 const playerName = params.get("player");
 
-if (!roomId || !playerName) {
-    console.error("Paramètres manquants, retour accueil.");
-    window.location.href = "/";
+if (window.location.pathname === "/game") {
+
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get("room");
+    const playerName = params.get("player");
+
+    if (!roomId || !playerName) {
+        console.error("Paramètres manquants, retour accueil.");
+        window.location.href = "/";
+    } else {
+        // On lance le jeu uniquement si les paramètres sont là
+        initGameConnection(roomId, playerName);
+    }
+}
+
+// Fonction pour encapsuler la logique de connexion (pour la propreté)
+function initGameConnection(roomId, playerName) {
+    if(document.getElementById("display-room-id")) {
+        document.getElementById("display-room-id").textContent = roomId;
+    }
+
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
+    const ws = new WebSocket(wsUrl);
+
+    // ... (Tout votre code WebSocket existant : ws.onopen, ws.onmessage, etc.) ...
+    // Copiez ici tout le bloc ws.on... jusqu'à la fin de la gestion du socket
+    
+    ws.onopen = () => { console.log("Connecté au WS"); };
+    
+    ws.onmessage = (event) => {
+        // ... VOTRE CODE WS.ONMESSAGE EXISTANT ICI ...
+        const data = JSON.parse(event.data);
+        // ... etc ...
+        // (Je ne remets pas tout le code pour faire court, mais gardez tout ce qu'il y avait)
+    };
+
+    ws.onclose = () => {
+        setRoomInfo("Déconnecté");
+    };
 }
 
 if(document.getElementById("display-room-id")) {
@@ -640,13 +675,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const helpModal = document.getElementById('help-modal');
 
     if (helpBtn && helpModal) {
-        // Ouvrir la modale au clic
         helpBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Empêche le comportement par défaut
+            e.preventDefault();
             helpModal.classList.add('active');
         });
 
-        // Fermer en cliquant sur le fond gris
         helpModal.addEventListener('click', (e) => {
             if (e.target === helpModal) {
                 helpModal.classList.remove('active');
@@ -654,3 +687,157 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+let currentConfigType = "definition"; // 'definition' ou 'intruder'
+
+function openGameConfig(type) {
+    if (!verifierPseudo()) return;
+    
+    currentConfigType = type;
+    const modal = document.getElementById('config-modal');
+    const modeGroup = document.getElementById('mode-group');
+    const durationGroup = document.getElementById('duration-group');
+    const title = document.getElementById('config-modal-title');
+    const desc = document.getElementById('mode-desc');
+    const modeSelect = document.getElementById('config-mode');
+
+    modal.classList.add('active');
+
+    if (type === 'intruder') {
+        // --- CONFIGURATION INTRUS (Timer Obligatoire) ---
+        title.textContent = "L'Intrus : Contre la montre";
+        
+        // On cache le choix du mode car c'est forcé en Blitz
+        modeGroup.style.display = 'none'; 
+        modeSelect.value = 'blitz'; // Force la valeur interne
+        
+        // On affiche toujours la durée
+        durationGroup.style.display = 'block';
+        
+        desc.textContent = "Trouvez un maximum d'intrus avant la fin du temps imparti !";
+    } else {
+        // --- CONFIGURATION DICTIONNARIO (Choix Libre) ---
+        title.textContent = "Config. Dictionnario";
+        
+        // On affiche le choix du mode
+        modeGroup.style.display = 'block';
+        modeSelect.value = 'coop'; // Défaut
+        
+        toggleDurationDisplay(); // Gère l'affichage de la durée selon le mode choisi
+    }
+}
+
+// 1. Ouvrir la modale
+function openDictioConfig() {
+    if (!verifierPseudo()) return;
+    const modal = document.getElementById('config-modal');
+    modal.classList.add('active');
+    // Reset à l'état par défaut (Coop)
+    document.getElementById('config-mode').value = "coop";
+    toggleDurationDisplay();
+}
+
+// 2. Fermer la modale
+function closeConfigModal() {
+    document.getElementById('config-modal').classList.remove('active');
+}
+
+function verifierPseudo() {
+    const nameInput = document.getElementById('player-name');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        // 1. On met le focus sur le champ (le navigateur scroll vers lui si besoin)
+        nameInput.focus();
+        
+        // 2. On ajoute l'animation "error-shake" définie dans ton style.css
+        nameInput.classList.add('error-shake');
+        
+        // 3. On retire la classe après l'animation pour pouvoir la rejouer si besoin
+        setTimeout(() => nameInput.classList.remove('error-shake'), 500);
+        
+        return false; // Le pseudo est invalide
+    }
+    return true; // C'est tout bon
+}
+
+
+// 3. Gérer l'affichage dynamique (Coop vs Blitz)
+function toggleDurationDisplay() {
+    // Cette fonction ne sert maintenant que pour Dictionnario
+    // car pour l'Intrus, le select "config-mode" est caché mais vaut "blitz"
+    const mode = document.getElementById('config-mode').value;
+    const durationGroup = document.getElementById('duration-group');
+    const desc = document.getElementById('mode-desc');
+
+    if (currentConfigType === 'definition') {
+        if (mode === 'blitz') {
+            durationGroup.style.display = 'block';
+            desc.textContent = "Trouvez un maximum de mots dans le temps imparti.";
+        } else {
+            durationGroup.style.display = 'none';
+            desc.textContent = "Trouvez un mot unique ensemble sans limite de temps.";
+        }
+    }
+}
+
+// 4. Lancer la partie avec les paramètres choisis
+function submitGameConfig() {
+    // Récupération des valeurs
+    // Pour l'intrus, mode sera 'blitz' car on l'a forcé dans openGameConfig
+    const mode = document.getElementById('config-mode').value;
+    let duration = 0;
+
+    if (mode === 'blitz') {
+        duration = parseInt(document.getElementById('config-duration').value);
+    }
+
+    closeConfigModal();
+    
+    // Lancement universel
+    createGame(currentConfigType, mode, duration);
+}
+
+function launchDictio() {
+    const modeSelect = document.getElementById('dictio-mode').value;
+    let mode = 'coop'; // Mode par défaut
+    let duration = 0;
+
+    if (modeSelect.startsWith('blitz')) {
+        mode = 'blitz';
+        // On extrait le chiffre (3 ou 5) et on convertit en secondes
+        duration = parseInt(modeSelect.split('_')[1]) * 60; 
+    }
+
+    createGame('definition', mode, duration);
+}
+
+async function createGame(type, mode = 'coop', duration = 0) {
+    if (!verifierPseudo()) return;
+    const name = document.getElementById('player-name').value;
+    if(!name) return showModal("Pseudo Requis", "Identifiez-vous avant de commencer une session.");
+    
+    const res = await fetch('/rooms', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ player_name: name, game_type: type, mode: mode, duration: duration })
+    });
+    const data = await res.json();
+    window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(name)}`;
+}
+
+document.getElementById('btn-join').onclick = () => {
+    if (!verifierPseudo()) return;
+    const name = document.getElementById('player-name').value;
+    const room = document.getElementById('room-id').value;
+    if(!name || !room) return showModal("Données Manquantes", "Le pseudo et l'ID de room sont nécessaires pour la synchronisation.");
+    window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
+};
+
+window.createGame = createGame;
+window.openGameConfig = openGameConfig;
+window.openDictioConfig = openDictioConfig;
+window.closeConfigModal = closeConfigModal;
+window.submitGameConfig = submitGameConfig;
+window.toggleDurationDisplay = toggleDurationDisplay;
+window.closeModal = closeModal;

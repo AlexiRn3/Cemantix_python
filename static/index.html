@@ -81,87 +81,8 @@
     </div>
 </div>
 
-<button id="help-trigger" class="help-float-btn" aria-label="Aide">?</button>
-
-<div id="help-modal" class="modal-overlay">
-    <div class="modal-box help-modal-content">
-        <h2 class="modal-title" style="font-size: 2rem;">Guide Arcade Hub</h2>
-        
-        <div class="help-section">
-            <h3 style="color:var(--accent);">🎮 Comment ça marche ?</h3>
-            <p>Arcade Hub est une plateforme de jeux sémantiques en <strong>temps réel</strong>. 
-            Créez une "Room", partagez l'URL ou le code à vos amis, et jouez ensemble (Coop) ou les uns contre les autres (Blitz/Course).</p>
-        </div>
-
-        <div class="help-grid">
-            <div class="help-item">
-                <div class="icon">✦</div>
-                <div>
-                    <strong>Cémantix</strong>
-                    <p>Trouvez le mot caché par proximité sémantique (sens). Plus c'est chaud (🌡️), plus vous êtes proche !</p>
-                </div>
-            </div>
-
-            <div class="help-item">
-                <div class="icon">¶</div>
-                <div>
-                    <strong>Dictionnario</strong>
-                    <p>Déduction pure. On vous donne une définition et le nombre de lettres. À vous de trouver le mot exact.</p>
-                </div>
-            </div>
-
-            <div class="help-item">
-                <div class="icon">?</div>
-                <div>
-                    <strong>L'Intrus</strong>
-                    <p>4 mots sont affichés. 3 sont très proches sémantiquement, 1 est un imposteur. Cliquez sur l'intrus !</p>
-                </div>
-            </div>
-
-            <div class="help-item">
-                <div class="icon">🔋</div>
-                <div>
-                    <strong>Pendu Arcade</strong>
-                    <p>Trouvez le mot lettre par lettre. Chaque erreur vide la batterie commune. Sauvez l'énergie !</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal-actions" style="margin-top: 30px;">
-            <button class="btn" onclick="document.getElementById('help-modal').classList.remove('active')">J'ai compris !</button>
-        </div>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script type="module" src="/static/js/main.js"></script>
-
-<script>
-    console.log("⚡ Chargement du script Help...");
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        const helpBtn = document.getElementById('help-trigger');
-        const helpModal = document.getElementById('help-modal');
-
-        if (helpBtn && helpModal) {
-            console.log("✅ Bouton Aide connecté");
-            
-            helpBtn.addEventListener('click', (e) => {
-                e.preventDefault(); 
-                e.stopPropagation();
-                helpModal.classList.add('active');
-            });
-
-            helpModal.addEventListener('click', (e) => {
-                if (e.target === helpModal) {
-                    helpModal.classList.remove('active');
-                }
-            });
-        } else {
-            console.error("❌ Problème : Bouton #help-trigger introuvable");
-        }
-    });
-</script>
 
 <footer class="site-footer">
     <div class="container footer-content">
@@ -170,7 +91,7 @@
         </div>
         
         <p class="footer-copy">
-            &copy; 2024 • Fait avec <span class="heart-beat">♥</span> et du Python.
+            &copy; 2025 • Fait avec <span class="heart-beat">♥</span> et du Python.
         </p>
 
         <div class="footer-links">
