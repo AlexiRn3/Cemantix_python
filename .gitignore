@@ -1,3 +1,5 @@
 model/*.bin
 .idea/
 rooms_state.json
+core/__pycache__/*
+__pycache__/*
