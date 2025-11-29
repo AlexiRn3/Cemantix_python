@@ -879,60 +879,151 @@ input::placeholder { color: #ccc; opacity: 1; }
     color: white;
 }
 
-/* --- Arrière-plan des objets qui tombent --- */
+/* --- Logout & Locked Inputs --- */
+.btn-danger {
+    background-color: #ff7675;
+    color: white;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+    margin-top: 10px;
+}
+.btn-danger:hover {
+    background-color: #d63031;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(214, 48, 49, 0.3);
+}
 
-/* Conteneur principal */
-.falling-objects-background {
+input:disabled {
+    background-color: #f0f0f0;
+    color: #b2bec3;
+    cursor: not-allowed;
+    border-color: #dfe6e9;
+}
+
+.locked-message {
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* --- CHAT STYLES --- */
+.chat-container {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Cache les objets hors écran */
-    z-index: -1; /* Place le conteneur derrière tout le contenu */
-    pointer-events: none; /* Assure qu'on peut cliquer sur le contenu, même derrière */
+    bottom: 0;
+    right: 20px;
+    width: 320px;
+    background: white;
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
 }
 
-/* Style de chaque objet */
-.falling-object {
-    position: absolute;
+.chat-container.collapsed {
+    transform: translateY(calc(100% - 50px)); /* Ne laisse dépasser que le header */
+}
+
+.chat-header {
+    padding: 15px;
+    background: var(--text-main);
+    color: white;
+    font-family: var(--font-heading);
+    border-radius: 15px 15px 0 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.chat-messages {
+    height: 300px;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #f9f9f9;
+}
+
+.chat-msg {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 10px;
+    max-width: 85%;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.chat-msg strong {
     display: block;
-    top: 0;
-    font-size: calc(10px + var(--i) * 2px); /* Taille basée sur --i */
-    color: hsl(var(--hue), 80%, 60%); /* Couleur basée sur --hue (change de couleur) */
-    opacity: 0.25; /* Rendu semi-transparent */
-    animation: fall linear infinite; /* Applique l'animation de chute */
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+    opacity: 0.7;
 }
 
-/* Positionnement initial aléatoire des objets */
-.falling-object:nth-child(1) { left: 5%; animation-delay: 0s; animation-duration: 10s; }
-.falling-object:nth-child(2) { left: 10%; animation-delay: 2s; animation-duration: 15s; }
-.falling-object:nth-child(3) { left: 15%; animation-delay: 4s; animation-duration: 12s; }
-.falling-object:nth-child(4) { left: 20%; animation-delay: 6s; animation-duration: 18s; }
-.falling-object:nth-child(5) { left: 25%; animation-delay: 8s; animation-duration: 14s; }
-.falling-object:nth-child(6) { left: 30%; animation-delay: 10s; animation-duration: 20s; }
-.falling-object:nth-child(7) { left: 50%; animation-delay: 3s; animation-duration: 13s; }
-.falling-object:nth-child(8) { left: 65%; animation-delay: 5s; animation-duration: 16s; }
-.falling-object:nth-child(9) { left: 80%; animation-delay: 7s; animation-duration: 11s; }
-.falling-object:nth-child(10) { left: 90%; animation-delay: 9s; animation-duration: 19s; }
-.falling-object:nth-child(11) { left: 95%; animation-delay: 1s; animation-duration: 17s; }
+/* Messages des autres (à gauche, gris) */
+.chat-msg.others {
+    background: white;
+    border: 1px solid #eee;
+    align-self: flex-start;
+}
 
+/* Mes messages (à droite, accent) */
+.chat-msg.me {
+    background: var(--accent);
+    color: white;
+    align-self: flex-end;
+}
 
-@keyframes fall {
-    0% {
-        /* On commence toujours en transform: translate() pour isoler la composition */
-        transform: translate(0, -100vh) rotate(0deg);
-        opacity: 0;
-    }
-    5% {
-        opacity: 0.25;
-    }
-    95% {
-        opacity: 0.25;
-    }
-    100% {
-        /* On utilise translate() au lieu de translateY() pour une légère amélioration */
-        transform: translate(0, 100vh) rotate(360deg); /* Réduit la rotation à 360deg */
-        opacity: 0;
-    }
+.chat-form {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #eee;
+    background: white;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    margin-right: 5px;
+}
+
+.btn-small {
+    background: var(--text-main);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    cursor: pointer;
+}
+
+/* Badge Daily pour le Hub */
+.daily-badge {
+    background: linear-gradient(45deg, #FFD700, #FDB931); 
+    color: var(--text-main);
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: inline-block;
+}
+
+.btn-disabled {
+    background-color: #b2bec3 !important;
+    border-color: #b2bec3 !important;
+    color: #636e72 !important;
+    cursor: not-allowed;
+    pointer-events: none; /* Désactive le clic */
+    box-shadow: none;
+    transform: none !important;
 }
