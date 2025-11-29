@@ -251,11 +251,12 @@ async def reset_room(room_id: str, payload: ResetRequest):
         # On récupère le nouvel état public
         public_state = room.engine.get_public_state()
         
-        await connections.broadcast(room_id, {
+        await connections.broadcast(room_id, 
+        {
             "type": "game_reset",
             "public_state": public_state,
             "mode": room.mode,
-            "scoreboard": build_scoreboard(room)
+            "scoreboard": build_scoreboard(room),
             "end_time": room.end_time
         })
         return {"status": "reset_done"}
