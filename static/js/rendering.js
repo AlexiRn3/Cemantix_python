@@ -11,54 +11,57 @@ export function addEntry(entry) {
 export function renderHistory() {
     elements.history.innerHTML = "";
 
-    // 1. On crée une copie de la liste pour l'affichage (pour ne pas modifier l'ordre historique des données)
-    let displayEntries = [...state.entries];
+    // 1. On prépare les données en attachant le numéro d'essai CHRONOLOGIQUE (Fix problème #3)
+    // state.entries est stocké du plus récent au plus ancien (unshift).
+    // Donc l'index 0 correspond au nombre total d'essais.
+    const totalAttempts = state.entries.length;
+    
+    let displayEntries = state.entries.map((entry, index) => ({
+        ...entry,
+        // Le numéro est fixe : (Total - Index actuel dans la liste brute)
+        attemptNumber: totalAttempts - index
+    }));
 
-    // 2. LOGIQUE DE TRI
-    // Si on est en mode Cémantix, on trie par "progression" (qui correspond au score/degré)
+    // 2. LOGIQUE DE TRI (Uniquement pour Cémantix)
     if (state.gameType === "cemantix") {
         displayEntries.sort((a, b) => {
-            // Tri décroissant : le plus grand score en haut
+            // Tri décroissant par score (progression)
             return (b.progression || 0) - (a.progression || 0);
         });
     }
-    // Sinon (Dictionnario), on garde l'ordre par défaut (chronologique inversé, géré par le unshift dans addEntry)
 
-    
     // 3. Affichage
-    // On utilise un index visuel. Attention : si trié, le #index ne correspond plus à l'ordre de tentative mais à la position dans le classement
-    let index = displayEntries.length; 
-    
     for (const entry of displayEntries) {
         const row = document.createElement("div");
-        // Logique de victoire : soit feedback 'Correct !', soit score >= 1000
         const isWin = (entry.game_type === 'definition' && entry.feedback === 'Correct !') || (entry.progression >= 1000);
         
         row.className = `line ${isWin ? 'win' : ''}`;
 
-        // Affichage du numéro de ligne (Classement ou ordre d'arrivée selon le mode)
-        const num = `<div class="num">#${index}</div>`;
+        // Fix #3 : On utilise le attemptNumber calculé plus haut au lieu d'un index de boucle
+        const num = `<div class="num">#${entry.attemptNumber}</div>`;
         const word = `<div class="word">${entry.word} <span style="opacity:0.5; font-size:0.8em">(${entry.player_name})</span></div>`;
         
         let meta = "";
         let bar = "";
 
         if (entry.game_type === "cemantix") {
-            // Affichage Température
             const tempVal = entry.temp !== undefined ? `${entry.temp}°C` : "—";
             const icon = getIcon(entry.progression || 0);
+            
+            // Fix #2 : Gestion des pourcentages négatifs
+            // Si la progression est négative, on force 0% pour éviter une erreur CSS
+            const widthPercent = Math.max(0, (entry.progression || 0) / 10);
+            
             meta = `<div class="meta">${icon} ${tempVal}</div>`;
-            bar = `<div class="score-bar"><div class="fill" style="width:${(entry.progression||0)/10}%"></div></div>`;
+            bar = `<div class="score-bar"><div class="fill" style="width:${widthPercent}%"></div></div>`;
         } else {
-            // Affichage Indice Dictionnario
+            // Dictionnario
             meta = `<div class="meta" style="color:var(--accent);">${entry.feedback || ""}</div>`;
             bar = `<div></div>`; 
         }
 
         row.innerHTML = `${num} ${word} ${meta} ${bar}`;
         elements.history.appendChild(row);
-        
-        index--;
     }
 }
 
@@ -112,12 +115,16 @@ export function triggerConfetti() {
     }
 }
 
+// static/js/rendering.js
+
 function getIcon(value) {
-    if (value >= 1000) return "💥";
-    if (value >= 990) return "🥵";
-    if (value >= 900) return "🔥";
-    if (value >= 500) return "😎";
-    return "❄️";
+    // value est le score sur 1000 (ex: 351 pour 35.19°C)
+    if (value >= 1000) return "💥"; // Trouvé
+    if (value >= 990) return "🔥";  // Brûlant
+    if (value >= 900) return "🥵";  // Très chaud
+    if (value >= 500) return "😎";  // Chaud
+    if (value >= 200) return "🌡️";  // Tiède (Nouveau seuil pour les mots > 20°C)
+    return "❄️"; // Froid (< 20°C)
 }
 
 function getColor(value) {
