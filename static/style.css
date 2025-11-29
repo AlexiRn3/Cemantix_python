@@ -38,6 +38,8 @@ body {
     font-family: var(--font-body);
     margin: 0;
     min-height: 100vh;
+    display: grid;
+    grid-template-rows: 1fr auto;
     -webkit-font-smoothing: antialiased;
     /* Motif à pois subtil */
     background-image: radial-gradient(#e6e6e6 1.5px, transparent 1.5px);
@@ -46,9 +48,11 @@ body {
 
 /* --- Layout & Typo --- */
 .container {
-    max-width: 1200px;
+    width: 95%;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 40px 40px;
+    box-sizing: border-box;
 }
 
 h1, h2, h3 {
@@ -157,7 +161,7 @@ input::placeholder { color: #ccc; opacity: 1; }
 /* --- GAMES GRID --- */
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));    
     gap: 30px;
     margin-top: 40px;
 }
@@ -214,6 +218,9 @@ input::placeholder { color: #ccc; opacity: 1; }
     padding: 20px 30px;
     border-radius: 100px;
     box-shadow: var(--shadow-soft);
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 300px;
 }
 
 #game-title { font-size: 2rem; margin: 0; }

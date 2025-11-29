@@ -41,7 +41,7 @@ class GuessEntry:
         g_type = data.get("game_type", "cemantix") 
         
         if g_type == "definition":
-            engine = DefinitionEngine()
+            engine = DefinitionEngine(model)
         else:
             engine = CemantixEngine(model)
             if "target_word" in data:
@@ -135,7 +135,7 @@ class RoomManager:
         
         engine: GameEngine
         if game_type == "definition":
-            engine = DefinitionEngine()
+            engine = DefinitionEngine(self.model)
             engine.new_game()
         elif game_type == "intruder":
             engine = IntruderEngine(self.model)

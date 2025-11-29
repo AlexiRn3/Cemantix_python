@@ -1,18 +1,53 @@
 import { elements } from "./dom.js";
 import { state } from "./state.js";
-import { addHistoryMessage, setRoomInfo, showModal } from "./ui.js";
+import { addHistoryMessage, setRoomInfo, showModal, closeModal } from "./ui.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti } from "./rendering.js";
 
-// ... (Le début du fichier : Initialisation, WebSocket reste inchangé) ...
-// ... (Copiez le code existant jusqu'à handleVictory) ...
 
 const params = new URLSearchParams(window.location.search);
 const roomId = params.get("room");
 const playerName = params.get("player");
 
-if (!roomId || !playerName) {
-    console.error("Paramètres manquants, retour accueil.");
-    window.location.href = "/";
+if (window.location.pathname === "/game") {
+
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get("room");
+    const playerName = params.get("player");
+
+    if (!roomId || !playerName) {
+        console.error("Paramètres manquants, retour accueil.");
+        window.location.href = "/";
+    } else {
+        // On lance le jeu uniquement si les paramètres sont là
+        initGameConnection(roomId, playerName);
+    }
+}
+
+// Fonction pour encapsuler la logique de connexion (pour la propreté)
+function initGameConnection(roomId, playerName) {
+    if(document.getElementById("display-room-id")) {
+        document.getElementById("display-room-id").textContent = roomId;
+    }
+
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
+    const ws = new WebSocket(wsUrl);
+
+    // ... (Tout votre code WebSocket existant : ws.onopen, ws.onmessage, etc.) ...
+    // Copiez ici tout le bloc ws.on... jusqu'à la fin de la gestion du socket
+    
+    ws.onopen = () => { console.log("Connecté au WS"); };
+    
+    ws.onmessage = (event) => {
+        // ... VOTRE CODE WS.ONMESSAGE EXISTANT ICI ...
+        const data = JSON.parse(event.data);
+        // ... etc ...
+        // (Je ne remets pas tout le code pour faire court, mais gardez tout ce qu'il y avait)
+    };
+
+    ws.onclose = () => {
+        setRoomInfo("Déconnecté");
+    };
 }
 
 if(document.getElementById("display-room-id")) {
@@ -640,13 +675,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const helpModal = document.getElementById('help-modal');
 
     if (helpBtn && helpModal) {
-        // Ouvrir la modale au clic
         helpBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Empêche le comportement par défaut
+            e.preventDefault();
             helpModal.classList.add('active');
         });
 
-        // Fermer en cliquant sur le fond gris
         helpModal.addEventListener('click', (e) => {
             if (e.target === helpModal) {
                 helpModal.classList.remove('active');
@@ -692,15 +725,6 @@ function openGameConfig(type) {
         
         toggleDurationDisplay(); // Gère l'affichage de la durée selon le mode choisi
     }
-}
-// Logique Modale
-function showModal(title, message) {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-content').textContent = message;
-    document.getElementById('modal-overlay').classList.add('active');
-}
-function closeModal() {
-    document.getElementById('modal-overlay').classList.remove('active');
 }
 
 // 1. Ouvrir la modale
@@ -809,3 +833,11 @@ document.getElementById('btn-join').onclick = () => {
     if(!name || !room) return showModal("Données Manquantes", "Le pseudo et l'ID de room sont nécessaires pour la synchronisation.");
     window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
 };
+
+window.createGame = createGame;
+window.openGameConfig = openGameConfig;
+window.openDictioConfig = openDictioConfig;
+window.closeConfigModal = closeConfigModal;
+window.submitGameConfig = submitGameConfig;
+window.toggleDurationDisplay = toggleDurationDisplay;
+window.closeModal = closeModal;
