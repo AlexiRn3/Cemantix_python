@@ -37,6 +37,24 @@ document.addEventListener("DOMContentLoaded", () => {
         nameInput.value = currentUser;
     }
 
+    const cards = document.querySelectorAll('.game-card');
+    const colors = [
+        'var(--accent)',    // Corail
+        'var(--secondary)', // Violet
+        'var(--success)',   // Menthe
+        'var(--warning)',   // Jaune
+        '#54a0ff',          // Bleu ciel
+        '#ff9ff3',          // Rose bonbon
+        '#00d2d3',          // Cyan
+        '#ff4757',          // Rouge vif
+        '#2e86de'           // Bleu profond
+    ];
+
+    cards.forEach(card => {
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        card.style.setProperty('--card-color', randomColor);
+    });
+
     // Initialisation du Chat (Si présent)
     initChat();
 });

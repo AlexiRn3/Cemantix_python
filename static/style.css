@@ -167,6 +167,7 @@ input::placeholder { color: #ccc; opacity: 1; }
 }
 
 .game-card {
+    --card-color: var(--border);
     background: var(--surface);
     border: none;
     border-radius: var(--radius-l);
@@ -185,7 +186,8 @@ input::placeholder { color: #ccc; opacity: 1; }
     content:'';
     position: absolute;
     top:0; left:0; right:0; height: 6px;
-    background: var(--border);
+    background: var(--card-color);
+    transition: background 0.3s;
 }
 
 .game-card:first-child::before { background: var(--accent); }
