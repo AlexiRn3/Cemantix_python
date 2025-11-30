@@ -1,38 +1,24 @@
-# This file contains the fastlane.tools configuration
-# You can find the documentation at https://docs.fastlane.tools
-#
-# For a list of all available actions, check out
-#
-#     https://docs.fastlane.tools/actions
-#
-# For a list of all available plugins, check out
-#
-#     https://docs.fastlane.tools/plugins/available-plugins
-#
+# Fastfile
 
-# Uncomment the line if you want fastlane to automatically update itself
-# update_fastlane
-
-default_platform(:android)
-
-platform :android do
-  desc "Runs all the tests"
-  lane :test do
-    gradle(task: "test")
-  end
-
-  desc "Submit a new Beta Build to Crashlytics Beta"
-  lane :beta do
-    gradle(task: "clean assembleRelease")
-    crashlytics
+# On force la plateforme iOS
+platform :ios do
   
-    # sh "your_script.sh"
-    # You can also use other beta testing services here
-  end
-
-  desc "Deploy a new version to the Google Play"
-  lane :deploy do
-    gradle(task: "clean assembleRelease")
-    upload_to_play_store
+  desc "Builds the iOS application and exports the IPA"
+  lane :build_ipa do
+    # Cette étape compilera le projet Xcode
+    build_app(
+      # Ces valeurs sont basées sur la structure par défaut de Capacitor
+      # Assurez-vous que le nom du workspace est correct (souvent 'App')
+      workspace: "../ios/App.xcworkspace", 
+      scheme: "App",                
+      export_method: "ad-hoc",       # 'ad-hoc' pour les tests, ou 'development'
+      
+      # DÉFINITION DU CHEMIN DE SORTIE FIXE
+      output_directory: "./build_output", # Le chemin est relatif au dossier 'android/'
+      output_name: "arcadehub.ipa"    
+    )
+    
+    # Si vous utilisez Match (Apple Code Signing) :
+    # match(type: "development")
   end
 end

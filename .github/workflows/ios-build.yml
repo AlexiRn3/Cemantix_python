@@ -22,37 +22,42 @@ jobs:
           node-version: '20' 
       
       - name: Install JavaScript Dependencies
-        # CLÉ DE LA CORRECTION : Exécution du npm install dans le sous-dossier 'android'
         run: npm install
-        working-directory: ./android 
+        working-directory: android 
         
-      # --- 2. Préparation du projet iOS ---
-      - name: Add iOS Platform
-        # Ajout de la plateforme iOS depuis le bon dossier
-        run: npx cap add ios || true 
-        working-directory: ./android
+      # --- 2. Installation de Ruby et Fastlane (CORRECTION) ---
+      - name: Setup Ruby Environment
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3' 
+          bundler-cache: true 
 
-      - name: Copy and Sync Web Assets
-        # Exécution du script de synchronisation depuis le bon dossier
-        run: npm run sync-ios
-        working-directory: ./android
+      - name: Install Fastlane
+        run: gem install fastlane
         
-        # --- 3. Configuration et Compilation native (Nécessite Fastlane) ---
-      - name: Build and Deploy to TestFlight (Example)
-        # Cette étape nécessite une configuration Fastlane (ou un script Xcode)
+      - name: Add iOS Platform & Sync Assets
+        run: |
+          npx cap add ios || true
+          npm run sync-ios
+        working-directory: android
+
+      # --- 3. Compilation et Déploiement Fastlane (CLÉ) ---
+      - name: Compile IPA with Fastlane
+        working-directory: android
         env:
+          # Les secrets sont cruciaux ici pour la signature
           FASTLANE_USER: ${{ secrets.APPLE_ID }}
           FASTLANE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
-          # Assurez-vous que Fastlane est configuré pour trouver et signer votre projet Xcode
         run: |
-          echo "Placeholder: Exécutez ici votre commande Fastlane de compilation."
+          # Exécute la lane 'build_ipa'
+          fastlane ios build_ipa
 
-      # --- 4. Artefacts (Récupération du fichier IPA) ---
+      # --- 4. Upload de l'Artefact (Utilise le chemin de sortie Fastfile) ---
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
-        if: always() # Continue même si la compilation échoue (pour voir les logs)
+        if: success()
         with:
-          name: ios-build-artifact
-          # Le chemin exact vers le fichier .ipa généré par Fastlane
-          path: Cemantix_python/android/arcadehub.ipa
+          name: arcadehub-ios
+          # CORRECTION du chemin: Il doit pointer vers le dossier défini dans le Fastfile
+          path: ./android/build_output/arcadehub.ipa
