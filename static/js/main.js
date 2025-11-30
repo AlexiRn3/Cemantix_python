@@ -1012,3 +1012,4 @@ window.closeConfigModal = closeConfigModal;
 window.submitGameConfig = submitGameConfig;
 window.toggleDurationDisplay = toggleDurationDisplay;
 window.closeModal = closeModal;
+
