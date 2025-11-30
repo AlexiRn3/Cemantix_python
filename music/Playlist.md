@@ -16,7 +16,10 @@ https://suno.com/s/BEArpKvcDqux9HVi
 
 # Dictionnary
 
+## coop
+https://suno.com/s/bmB2QyPePLyFbJrk
 
+## blitz
 
 # Cemantics
 
