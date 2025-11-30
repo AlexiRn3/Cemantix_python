@@ -35,7 +35,7 @@ jobs:
 
       - name: Copy and Sync Web Assets
         # CLÉ DE LA CORRECTION: Utilise le chemin direct au binaire Capacitor
-        run: ./node_modules/.bin/capacitor sync ios
+        run: npx cap sync ios
 
       # --- 3. Configuration et Compilation native (Nécessite Fastlane) ---
       - name: Build and Deploy to TestFlight (Example)
