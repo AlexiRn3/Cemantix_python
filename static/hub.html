@@ -228,7 +228,7 @@
         <div class="footer-brand">
             <span style="color:var(--accent); font-size:1.5rem;">●</span> ARCADE HUB
         </div>
-        
+
         <p class="footer-copy">
             &copy; 2024 • Fait avec <span class="heart-beat">♥</span> et du Python, par Julien et Alexi.
         </p>
@@ -241,9 +241,7 @@
     </div>
 </footer>
 
-<!-- --- Musique de fond Mario-like --- -->
-<audio id="bg-music" src="/static/music/Hub.mp3" loop preload="auto"></audio>
-
+<!-- --- Musique de fond via SoundCloud --- -->
 <div id="music-toggle"
      style="
         position: fixed;
@@ -264,6 +262,16 @@
     <span id="music-icon" style="font-size: 1.4rem;">🔊</span>
 </div>
 
+<iframe
+    id="sc-player"
+    title="Lecteur SoundCloud"
+    style="display:none;"
+    scrolling="no"
+    frameborder="no"
+    allow="autoplay"
+></iframe>
+
+<script src="https://w.soundcloud.com/player/api.js"></script>
 <script type="module" src="/static/js/music_hub.js"></script>
 
 
