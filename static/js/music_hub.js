@@ -167,6 +167,7 @@ function bindWidgetEvents(currentWidget) {
 }
 
 function loadSoundtrack(url, autoPlay = false) {
+    console.log(url);
     if (!url) {
         console.warn("Aucune piste de musique définie pour ce contexte.");
         return;
