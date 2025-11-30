@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">cemantix-android</string>
-    <string name="title_activity_main">cemantix-android</string>
-    <string name="package_name">com.julxi.cemantix</string>
-    <string name="custom_url_scheme">com.julxi.cemantix</string>
-</resources>
