@@ -265,13 +265,25 @@ async function init() {
 
     updateIcon();
 
-    const datasetConfig = buildDatasetConfig();
-    const playlistConfig = await fetchPlaylistConfig();
-    const config = mergeConfigs(datasetConfig, playlistConfig);
+    const drawer = document.getElementById("music-drawer");
+    const toggleButton = document.getElementById("music-toggle");
+    const toggleIcon = document.getElementById("music-icon");
+    const playerFrame = document.getElementById("sc-player");
+
+    if (!drawer || !toggleButton) return;
 
     if (!config.defaultTrack) {
         config.defaultTrack = chooseFallbackTrack(config);
     }
+
+    toggleButton.addEventListener("click", () => {
+        drawer.classList.toggle("active");
+        
+        // Changement cosmétique de la flèche (optionnel)
+        if (toggleIcon) {
+            toggleIcon.textContent = drawer.classList.contains("active") ? "👉" : "🎵";
+        }
+    });
 
     widgetApiReady.then(() => {
         if (!window.SC || !window.SC.Widget) {
@@ -283,8 +295,8 @@ async function init() {
         currentMode = playerFrame.dataset.currentMode || null;
         currentDuration = playerFrame.dataset.currentDuration || null;
         const durationKey = currentDuration ? String(currentDuration) : null;
-
         const initialTrack = resolveTrackUrl(config, currentGameType, currentMode, durationKey);
+
         loadSoundtrack(initialTrack, config.autoPlay);
 
         toggleButton.addEventListener("click", () => {
@@ -292,41 +304,73 @@ async function init() {
             widget.toggle();
         });
 
-        window.musicManager = {
-            setContext({ gameType = currentGameType, mode = currentMode, duration = currentDuration, autoPlay = false } = {}) {
-                currentGameType = gameType;
-                currentMode = mode;
-                currentDuration = duration;
-                const durationKey = duration ? String(duration) : null;
-                const targetUrl = resolveTrackUrl(config, currentGameType, currentMode, durationKey);
-                if (targetUrl) {
-                    loadSoundtrack(targetUrl, autoPlay);
-                }
-            },
-            setMode(mode, autoPlay = false) {
-                this.setContext({ mode, autoPlay });
-            },
-            setTracks(newConfig = {}) {
-                const mergeNested = (target = {}, incoming = {}) => {
-                    const result = { ...target };
-                    Object.entries(incoming).forEach(([key, value]) => {
-                        result[key] = { ...(target[key] || {}), ...(value || {}) };
-                    });
-                    return result;
-                };
+        if (!playerFrame) return;
 
-                config.modeTracks = { ...config.modeTracks, ...(newConfig.modeTracks || {}) };
-                config.gameTracks = { ...config.gameTracks, ...(newConfig.gameTracks || {}) };
-                config.gameModeTracks = mergeNested(config.gameModeTracks, newConfig.gameModeTracks || {});
-                config.gameDurationTracks = mergeNested(config.gameDurationTracks, newConfig.gameDurationTracks || {});
-                if (newConfig.defaultTrack) config.defaultTrack = newConfig.defaultTrack;
-                const durationKey = currentDuration ? String(currentDuration) : null;
-                const refreshedUrl = resolveTrackUrl(config, currentGameType, currentMode, durationKey);
-                if (refreshedUrl) {
-                    loadSoundtrack(refreshedUrl, false);
-                }
-            },
-        };
+        const datasetConfig = buildDatasetConfig();
+        const playlistConfig = await fetchPlaylistConfig();
+        const config = mergeConfigs(datasetConfig, playlistConfig);
+
+        if (!config.defaultTrack) {
+            config.defaultTrack = chooseFallbackTrack(config);
+        }
+
+        loadSoundtrack(initialTrack, config.autoPlay);
+
+            widgetApiReady.then(() => {
+            if (!window.SC || !window.SC.Widget) {
+                console.warn("L'API SoundCloud n'est pas disponible.");
+                return;
+            }
+
+            currentGameType = playerFrame.dataset.currentGame || null;
+            currentMode = playerFrame.dataset.currentMode || null;
+            currentDuration = playerFrame.dataset.currentDuration || null;
+            const durationKey = currentDuration ? String(currentDuration) : null;
+
+            const initialTrack = resolveTrackUrl(config, currentGameType, currentMode, durationKey);
+            
+            // Lancement de la piste
+            loadSoundtrack(initialTrack, config.autoPlay);
+
+            // Configuration de l'objet global pour le changement de musique dynamique
+            window.musicManager = {
+                setContext({ gameType = currentGameType, mode = currentMode, duration = currentDuration, autoPlay = false } = {}) {
+                    currentGameType = gameType;
+                    currentMode = mode;
+                    currentDuration = duration;
+                    const durationKey = duration ? String(duration) : null;
+                    const targetUrl = resolveTrackUrl(config, currentGameType, currentMode, durationKey);
+                    if (targetUrl) {
+                        loadSoundtrack(targetUrl, autoPlay);
+                    }
+                },
+                setMode(mode, autoPlay = false) {
+                    this.setContext({ mode, autoPlay });
+                },
+                setTracks(newConfig = {}) {
+                    Object.assign(config.modeTracks, newConfig.modeTracks || {});
+                    Object.assign(config.gameTracks, newConfig.gameTracks || {});
+                    const mergeNested = (target = {}, incoming = {}) => {
+                        const result = { ...target };
+                        Object.entries(incoming).forEach(([key, value]) => {
+                            result[key] = { ...(target[key] || {}), ...(value || {}) };
+                        });
+                        return result;
+                    };
+
+                    config.modeTracks = { ...config.modeTracks, ...(newConfig.modeTracks || {}) };
+                    config.gameTracks = { ...config.gameTracks, ...(newConfig.gameTracks || {}) };
+                    config.gameModeTracks = mergeNested(config.gameModeTracks, newConfig.gameModeTracks || {});
+                    config.gameDurationTracks = mergeNested(config.gameDurationTracks, newConfig.gameDurationTracks || {});
+                    if (newConfig.defaultTrack) config.defaultTrack = newConfig.defaultTrack;
+                    const durationKey = currentDuration ? String(currentDuration) : null;
+                    const refreshedUrl = resolveTrackUrl(config, currentGameType, currentMode, durationKey);
+                    if (refreshedUrl) {
+                        loadSoundtrack(refreshedUrl, false);
+                    }
+                },
+            };
+        });
     });
 }
 
