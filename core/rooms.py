@@ -153,11 +153,14 @@ class RoomManager:
 
     def create_room(self, game_type: str, mode: str, creator_name: str) -> RoomState:
         room_id = uuid.uuid4().hex[:8]
-        
+
         engine: GameEngine
         if game_type == "definition":
             engine = DefinitionEngine(self.model)
-            engine.new_game()
+            try:
+                engine.new_game()
+            except Exception as exc:
+                raise RuntimeError("Impossible d'initialiser le jeu de définition") from exc
         elif game_type == "intruder":
             engine = IntruderEngine(self.model)
             engine.new_game()
