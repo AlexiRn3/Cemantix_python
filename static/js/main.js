@@ -772,23 +772,152 @@ async function submitHangmanGuess(letter, btnElement) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// --- FONCTION D'INITIALISATION GLOBALE (SPA) ---
+export function initApp() {
+    console.log("Initialisation de l'application...");
+
+    // 1. Mise à jour des références DOM (Crucial car le HTML a été remplacé)
+    // On réassigne les propriétés de l'objet 'elements' importé
+    elements.form = document.getElementById("guess-form");
+    elements.input = document.getElementById("word-input");
+    elements.history = document.getElementById("history");
+    elements.scoreboard = document.getElementById("scoreboard");
+    elements.roomInfo = document.getElementById("display-room-id");
+    elements.messages = document.getElementById("messages");
+
+    // 2. Nettoyage de l'état
+    if (state.websocket) {
+        state.websocket.close();
+        state.websocket = null;
+    }
+    state.currentRoomId = null;
+    state.locked = false;
+    
+    // 3. Gestion de la Session et UI
+    updateSessionUI();
+    checkDailyVictory();
+
+    // 4. Capacitor (Mobile)
+    if (window.Capacitor && StatusBar) {
+        StatusBar.setBackgroundColor({ color: '#Fdfbf7' });
+        StatusBar.setStyle({ style: Style.Dark });
+    }
+
+    // --- LOGIQUE SPECIFIQUE : HUB ---
+    if (window.location.pathname === "/" || window.location.pathname === "/index.html") {
+        // Musique du Hub
+        if (window.musicManager) {
+            window.musicManager.setContext({ gameType: 'hub' });
+        }
+
+        // Pré-remplissage pseudo
+        const nameInput = document.getElementById('player-name');
+        if (nameInput && currentUser) {
+            nameInput.value = currentUser;
+        }
+
+        // Couleurs aléatoires des cartes
+        const cards = document.querySelectorAll('.game-card');
+        const colors = ['var(--accent)', 'var(--secondary)', 'var(--success)', 'var(--warning)', '#54a0ff', '#ff9ff3', '#00d2d3', '#ff4757', '#2e86de'];
+        cards.forEach(card => {
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            card.style.setProperty('--card-color', randomColor);
+        });
+
+        // Bouton "Rejoindre" manuel
+        const joinBtn = document.getElementById('btn-join');
+        if (joinBtn) {
+            joinBtn.onclick = () => {
+                if (!verifierPseudo()) return;
+                
+                const pInput = document.getElementById('player-name');
+                let name = pInput ? pInput.value : currentUser;
+                if(!name && currentUser) name = currentUser;
+
+                const room = document.getElementById('room-id').value;
+                if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");
+                
+                // Utilisation du routeur pour naviguer sans recharger
+                window.navigateTo(`/game?room=${room}&player=${encodeURIComponent(name)}`);
+            };
+        }
+    }
+
+    // --- LOGIQUE SPECIFIQUE : JEU ---
+    if (window.location.pathname.includes("/game")) {
+        const params = new URLSearchParams(window.location.search);
+        const roomId = params.get("room");
+        const playerName = params.get("player");
+
+        if (!roomId || !playerName) {
+            window.navigateTo("/"); 
+        } else {
+            initGameConnection(roomId, playerName);
+            // Note: La musique du jeu sera lancée par le WebSocket (event 'state_sync')
+        }
+        
+        // Réattachement du formulaire de jeu
+        if (elements.form) {
+            elements.form.onsubmit = async (e) => {
+                e.preventDefault();
+                const overlay = document.getElementById('modal-overlay');
+                if (overlay && overlay.classList.contains('active')) return;
+                if (state.locked) return;
+                
+                const word = elements.input.value.trim();
+                if (!word) {
+                    showModal("Hey !", "Il faut écrire un mot avant d'essayer.");
+                    return;
+                }
+
+                elements.input.value = "";
+                elements.input.focus();
+                
+                try {
+                    const res = await fetch(`/rooms/${roomId}/guess`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ word, player_name: playerName })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.error) {
+                        if (data.error === "unknown_word") {
+                            addHistoryMessage("⚠️ " + data.message, 3000);
+                            elements.input.classList.add("error-shake");
+                            setTimeout(() => elements.input.classList.remove("error-shake"), 500);
+                        } else {
+                            showModal("Erreur", data.message);
+                        }
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            };
+        }
+    }
+
+    // 5. Initialisation Chat & Aide (Commun à toutes les pages)
+    initChat();
+    
     const helpBtn = document.getElementById('help-trigger');
     const helpModal = document.getElementById('help-modal');
-
     if (helpBtn && helpModal) {
-        helpBtn.addEventListener('click', (e) => {
+        helpBtn.onclick = (e) => {
             e.preventDefault();
             helpModal.classList.add('active');
-        });
-
-        helpModal.addEventListener('click', (e) => {
-            if (e.target === helpModal) {
-                helpModal.classList.remove('active');
-            }
-        });
+        };
+        helpModal.onclick = (e) => {
+            if (e.target === helpModal) helpModal.classList.remove('active');
+        };
     }
-});
+}
+
+// Exposition globale pour le routeur
+window.initApp = initApp;
+
+// Premier lancement au chargement réel de la page
+document.addEventListener("DOMContentLoaded", initApp);
 
 let currentConfigType = "definition"; // 'definition' ou 'intruder'
 

@@ -51,7 +51,7 @@ body {
     width: 95%;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 40px 40px;
+    padding: 20px 40px;
     box-sizing: border-box;
 }
 
@@ -135,7 +135,7 @@ input::placeholder { color: #ccc; opacity: 1; }
 /* --- HUB HERO --- */
 .hero {
     text-align: center;
-    padding: 80px 0 60px;
+    padding: 10px 0 40px;
     position: relative;
 }
 
@@ -1148,4 +1148,24 @@ input:disabled {
     height: 166px; /* Taille standard widget mini SoundCloud */
     display: block !important; /* On force l'affichage */
     border-radius: 12px;
+}
+
+/* --- LOGO STYLES --- */
+.hub-logo {
+    max-width: 100%;       /* Ne dépasse jamais la largeur de l'écran */
+    width: 500px;          /* Taille idéale sur ordinateur */
+    height: auto;          /* Garde les proportions */
+    display: block;
+    margin: 0 auto 30px;   /* Centré horizontalement + marge en bas */
+    
+    /* Optionnel : petite animation d'apparition */
+    animation: popIn 0.8s var(--ease-bounce);
+}
+
+/* Ajustement pour mobile */
+@media (max-width: 768px) {
+    .hub-logo {
+        width: 300px;      /* Plus petit sur mobile */
+        margin-bottom: 20px;
+    }
 }
