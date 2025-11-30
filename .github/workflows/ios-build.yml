@@ -11,50 +11,50 @@ jobs:
     runs-on: macos-latest
     environment: Production
 
-steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    steps:
+          - name: Checkout Code
+            uses: actions/checkout@v4
 
-      # --- 1. Installation des dépendances JS ---
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20' 
-      
-      - name: Install JavaScript Dependencies
-        run: npm install
-        working-directory: android 
-        
-      # --- 2. Installation de Ruby et Fastlane ---
-      - name: Setup Ruby Environment
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3' 
-          bundler-cache: true 
+          # --- 1. Installation des dépendances JS ---
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '20' 
+          
+          - name: Install JavaScript Dependencies
+            run: npm install
+            working-directory: android 
+            
+          # --- 2. Installation de Ruby et Fastlane ---
+          - name: Setup Ruby Environment
+            uses: ruby/setup-ruby@v1
+            with:
+              ruby-version: '3.3' 
+              bundler-cache: true 
 
-      - name: Install Fastlane
-        run: gem install fastlane
+          - name: Install Fastlane
+            run: gem install fastlane
 
-      # NOUVEAU : Installe les dépendances définies dans le Gemfile de Fastlane
-      # (Optionnel si votre 'gem install fastlane' n'utilise pas de Gemfile, mais recommandé)
-      - name: Install Bundler dependencies
-        run: bundle install
-        working-directory: android
-        
-      # --- 3. Préparation et Synchronisation ---
-      - name: Add iOS Platform & Sync Assets
-        run: |
-          npx cap add ios || true
-          npm run sync-ios
-        working-directory: android
+          # NOUVEAU : Installe les dépendances définies dans le Gemfile de Fastlane
+          # (Optionnel si votre 'gem install fastlane' n'utilise pas de Gemfile, mais recommandé)
+          - name: Install Bundler dependencies
+            run: bundle install
+            working-directory: android
+            
+          # --- 3. Préparation et Synchronisation ---
+          - name: Add iOS Platform & Sync Assets
+            run: |
+              npx cap add ios || true
+              npm run sync-ios
+            working-directory: android
 
-      # --- 4. Compilation Fastlane (CLÉ DE LA CORRECTION) ---
-      - name: Compile IPA with Fastlane
-        working-directory: android
-        env:
-          FASTLANE_USER: ${{ secrets.APPLE_ID }}
-          FASTLANE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
-        run: |
-          # UTILISER BUNDLE EXEC COMME SUGGÉRÉ PAR FASTLANE
-          bundle exec fastlane ios build_ipa
+          # --- 4. Compilation Fastlane (CLÉ DE LA CORRECTION) ---
+          - name: Compile IPA with Fastlane
+            working-directory: android
+            env:
+              FASTLANE_USER: ${{ secrets.APPLE_ID }}
+              FASTLANE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+              FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+            run: |
+              # UTILISER BUNDLE EXEC COMME SUGGÉRÉ PAR FASTLANE
+              bundle exec fastlane ios build_ipa
