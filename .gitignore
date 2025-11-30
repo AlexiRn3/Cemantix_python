@@ -3,3 +3,5 @@ model/*.bin
 rooms_state.json
 core/__pycache__/*
 __pycache__/*
+*.exe
+/android/node_modules

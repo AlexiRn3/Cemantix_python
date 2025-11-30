@@ -231,6 +231,7 @@ class DefinitionEngine(GameEngine):
         print("[DEF] Impossible de trouver un mot valide.")
         self.target_word = None
         self.definition = None
+        raise RuntimeError("Aucune définition disponible après plusieurs tentatives")
 
     # -------------------------------------------------------
     # 4) Guess

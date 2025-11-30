@@ -2,6 +2,7 @@ const SOUNDTRACK_URL = "https://soundcloud.com/monstercat/sets/monstercat-instin
 
 const toggleButton = document.getElementById("music-toggle");
 const toggleIcon = document.getElementById("music-icon");
+
 const playerFrame = document.getElementById("sc-player");
 
 const widgetApiReady = new Promise((resolve) => {
@@ -58,6 +59,7 @@ function bindWidgetEvents(currentWidget) {
 }
 
 function loadSoundtrack(url, autoPlay = false) {
+
     playerFrame.src = buildPlayerSrc(url, autoPlay);
     widget = window.SC.Widget(playerFrame);
     bindWidgetEvents(widget);

@@ -202,8 +202,12 @@ def create_room(payload: CreateRoomRequest):
         return JSONResponse(status_code=500, content={"message": "Le modèle Cémantix n'est pas chargé sur le serveur."})
 
     mode = payload.mode if payload.mode in {"coop", "race", "blitz", "daily"} else "coop"
-    room = room_manager.create_room(payload.game_type, mode, payload.player_name)
-    
+    try:
+        room = room_manager.create_room(payload.game_type, mode, payload.player_name)
+    except Exception as exc:
+        error_message = "Impossible de créer une partie de définition pour le moment." if payload.game_type == "definition" else "Erreur lors de la création de la partie."
+        return JSONResponse(status_code=503, content={"message": error_message, "detail": str(exc)})
+
     if payload.mode == "blitz" and payload.duration > 0:
         room.duration = payload.duration
         room.end_time = time.time() + payload.duration
