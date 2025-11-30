@@ -208,7 +208,7 @@ class DefinitionEngine(GameEngine):
             w for w in vocab
             if 4 <= len(w) <= 12
             and re.fullmatch(r"[a-zàâçéèêëîïôûùüÿñæœ]+", w)
-            and self.model.get_vecattr(w, "count") > 50000
+            and self.model.get_vecattr(w, "count") > 60000
         ]
         print(f"[DEF] {len(frequent_words)} mots fréquents sélectionnés")
 
