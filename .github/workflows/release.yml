@@ -5,7 +5,7 @@ on:
     types: [published]
 
 permissions:
-  contents: write   # nécessaire pour attacher un asset
+  contents: write
 
 jobs:
   build:
@@ -56,35 +56,6 @@ jobs:
                 'content-length': fs.statSync(path).size
               }
             });
-            - name: Copy image to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          source: "dist/cemantix-python-image.tar.gz"
-          target: "~/cemantix/"
-
-      - name: Deploy on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          script: |
-            cd ~/cemantix
-            docker load < cemantix-python-image.tar.gz
-
-            if [ "$(docker ps -q -f name=cemantix)" ]; then
-              docker stop cemantix
-              docker rm cemantix
-            fi
-
-            docker run -d \
-              --name cemantix \
-              -p 8000:8000 \
-              cemantix-python:latest
-
 
       - name: Copy image to server
         uses: appleboy/scp-action@v0.1.7
@@ -114,4 +85,3 @@ jobs:
               --name cemantix \
               -p 8000:8000 \
               cemantix-python:latest
-
