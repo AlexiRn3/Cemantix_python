@@ -9,7 +9,6 @@ COPY app.py .
 COPY core/ core/
 COPY static/ static/
 COPY requirements.txt .
-COPY model/ model/
 COPY music/ music/
 
 # Téléchargement du modèle
