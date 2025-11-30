@@ -24,18 +24,18 @@ jobs:
       - name: Install JavaScript Dependencies
         # CLÉ DE LA CORRECTION : Exécution du npm install dans le sous-dossier 'android'
         run: npm install
-        working-directory: /android 
+        working-directory: ./android 
         
       # --- 2. Préparation du projet iOS ---
       - name: Add iOS Platform
         # Ajout de la plateforme iOS depuis le bon dossier
         run: npx cap add ios || true 
-        working-directory: /android
+        working-directory: ./android
 
       - name: Copy and Sync Web Assets
         # Exécution du script de synchronisation depuis le bon dossier
         run: npm run sync-ios
-        working-directory: /android
+        working-directory: ./android
         
         # --- 3. Configuration et Compilation native (Nécessite Fastlane) ---
       - name: Build and Deploy to TestFlight (Example)
@@ -55,4 +55,4 @@ jobs:
         with:
           name: ios-build-artifact
           # Le chemin exact vers le fichier .ipa généré par Fastlane
-          path: /android/arcadehub.ipa
+          path: ${{ github.workspace }}/android/arcadehub.ipa
