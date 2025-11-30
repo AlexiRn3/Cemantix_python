@@ -37,5 +37,22 @@ jobs:
         run: npm run sync-ios
         working-directory: android
         
-      # --- 3. Configuration et Compilation native (à compléter) ---
-      # ... (Reste de la configuration Fastlane/Build) ...
+        # --- 3. Configuration et Compilation native (Nécessite Fastlane) ---
+      - name: Build and Deploy to TestFlight (Example)
+        # Cette étape nécessite une configuration Fastlane (ou un script Xcode)
+        env:
+          FASTLANE_USER: ${{ secrets.APPLE_ID }}
+          FASTLANE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          # Assurez-vous que Fastlane est configuré pour trouver et signer votre projet Xcode
+        run: |
+          echo "Placeholder: Exécutez ici votre commande Fastlane de compilation."
+
+      # --- 4. Artefacts (Récupération du fichier IPA) ---
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        if: always() # Continue même si la compilation échoue (pour voir les logs)
+        with:
+          name: ios-build-artifact
+          # Le chemin exact vers le fichier .ipa généré par Fastlane
+          path: ./ios/build/Release-iphoneos/VotreApp.ipa

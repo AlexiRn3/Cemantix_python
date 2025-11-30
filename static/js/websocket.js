@@ -14,6 +14,7 @@ export function openWebsocket(playerName) {
 
     const protocol = "ws";
 
+    //const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     state.websocket = new WebSocket(`${protocol}://${API_HOST}/rooms/${state.currentRoomId}/ws?player_name=${encodeURIComponent(playerName)}`);
     state.websocket.onopen = () => {
         setRoomInfo(`Connecté à la room ${state.currentRoomId} (${state.currentMode})`);
