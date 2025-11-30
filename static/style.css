@@ -114,14 +114,14 @@ input, select {
     background: var(--surface);
     border: 2px solid var(--border);
     color: var(--text-main);
-    padding: 18px 24px;
-    font-family: var(--font-heading);
-    font-size: 1.3rem;
+    padding: 15px 20px;
+    font-size: 1.1rem;
+    font-family: var(--font-body);
     width: 100%;
-    transition: all 0.3s;
-    border-radius: var(--radius-m);
-    box-shadow: var(--shadow-soft);
-    box-sizing: border-box; /* Important pour le padding */
+    border-radius: var(--radius-s);
+    box-shadow: none; /* Look plus flat */
+    margin-bottom: 15px;
+    box-sizing: border-box;
 }
 
 input:focus, select:focus {

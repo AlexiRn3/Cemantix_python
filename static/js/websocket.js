@@ -10,9 +10,11 @@ export function openWebsocket(playerName) {
         state.websocket.close();
     }
 
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    state.websocket = new WebSocket(`${protocol}://${window.location.host}/rooms/${state.currentRoomId}/ws?player_name=${encodeURIComponent(playerName)}`);
+    const API_HOST = "192.168.1.163:1256";
 
+    const protocol = "ws";
+
+    state.websocket = new WebSocket(`${protocol}://${API_HOST}/rooms/${state.currentRoomId}/ws?player_name=${encodeURIComponent(playerName)}`);
     state.websocket.onopen = () => {
         setRoomInfo(`Connecté à la room ${state.currentRoomId} (${state.currentMode})`);
     };
