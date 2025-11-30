@@ -262,44 +262,66 @@ function chooseFallbackTrack(config) {
 }
 
 async function init() {
-    if (!playerFrame || !toggleButton || !toggleIcon) return;
+    // 1. Récupération des éléments nécessaires pour le tiroir
+    const drawer = document.getElementById("music-drawer");
+    // On utilise les variables globales définies en haut du fichier, 
+    // ou on les recherche si elles sont nulles (cas de navigation dynamique parfois)
+    const btn = toggleButton || document.getElementById("music-toggle");
+    const icon = toggleIcon || document.getElementById("music-icon");
+    const frame = playerFrame || document.getElementById("sc-player");
 
-    updateIcon();
+    // Si pas de bouton ou de tiroir, on ne peut rien faire
+    if (!drawer || !btn) return;
 
+    // 2. GESTION DU CLIC (PRIORITAIRE & IMMÉDIATE)
+    // On attache l'événement tout de suite pour que l'ouverture marche 
+    // même si la musique ou SoundCloud met du temps à charger.
+    btn.addEventListener("click", () => {
+        drawer.classList.toggle("active");
+        
+        // Changement cosmétique de l'icône (flèche ou note)
+        if (icon) {
+            icon.textContent = drawer.classList.contains("active") ? "👉" : "🎵";
+        }
+    });
+
+    // 3. Chargement de la configuration et de la musique
+    if (!frame) return;
+
+    // On récupère la config (JSON dans le HTML + fichier Markdown)
     const datasetConfig = buildDatasetConfig();
     const playlistConfig = await fetchPlaylistConfig();
-    const config = mergeConfigs(datasetConfig, playlistConfig);
+    const config = mergeConfigs(datasetConfig, playlistConfig); // La variable config est définie ici !
 
     if (!config.defaultTrack) {
         config.defaultTrack = chooseFallbackTrack(config);
     }
 
+    // 4. Initialisation du Widget SoundCloud
     widgetApiReady.then(() => {
         if (!window.SC || !window.SC.Widget) {
             console.warn("L'API SoundCloud n'est pas disponible.");
             return;
         }
 
-        currentGameType = playerFrame.dataset.currentGame || null;
-        currentMode = playerFrame.dataset.currentMode || null;
-        currentDuration = playerFrame.dataset.currentDuration || null;
+        // Lecture des paramètres de contexte (jeu, mode...)
+        currentGameType = frame.dataset.currentGame || null;
+        currentMode = frame.dataset.currentMode || null;
+        currentDuration = frame.dataset.currentDuration || null;
         const durationKey = currentDuration ? String(currentDuration) : null;
 
+        // Choix de la piste et chargement
         const initialTrack = resolveTrackUrl(config, currentGameType, currentMode, durationKey);
         loadSoundtrack(initialTrack, config.autoPlay);
 
-        toggleButton.addEventListener("click", () => {
-            if (!widget) return;
-            widget.toggle();
-        });
-
+        // Configuration de l'objet global pour le pilotage externe
         window.musicManager = {
             setContext({ gameType = currentGameType, mode = currentMode, duration = currentDuration, autoPlay = false } = {}) {
                 currentGameType = gameType;
                 currentMode = mode;
                 currentDuration = duration;
-                const durationKey = duration ? String(duration) : null;
-                const targetUrl = resolveTrackUrl(config, currentGameType, currentMode, durationKey);
+                const dKey = duration ? String(duration) : null;
+                const targetUrl = resolveTrackUrl(config, currentGameType, currentMode, dKey);
                 if (targetUrl) {
                     loadSoundtrack(targetUrl, autoPlay);
                 }
@@ -308,6 +330,8 @@ async function init() {
                 this.setContext({ mode, autoPlay });
             },
             setTracks(newConfig = {}) {
+                Object.assign(config.modeTracks, newConfig.modeTracks || {});
+                Object.assign(config.gameTracks, newConfig.gameTracks || {});
                 const mergeNested = (target = {}, incoming = {}) => {
                     const result = { ...target };
                     Object.entries(incoming).forEach(([key, value]) => {
