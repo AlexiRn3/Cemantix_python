@@ -1,7 +1,7 @@
 name: Build iOS App
 
 on:
-  # Déclenche le workflow manuellement
+  # Permet de lancer le workflow manuellement depuis l'interface GitHub
   workflow_dispatch:
   # Déclenche le workflow à chaque push sur la branche 'android'
   push:
@@ -10,59 +10,53 @@ on:
 
 jobs:
   build-ios:
-    # CLÉ: Utilise la machine virtuelle macOS
+    # Utilise la machine virtuelle macOS
     runs-on: macos-latest
     environment: Production
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        # Utilise la branche 'android' qui contient les dossiers natifs
+        # Utilise la branche 'android'
 
       # --- 1. Installation des dépendances ---
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Assurez-vous d'utiliser une version compatible avec Capacitor
-
+          node-version: '20' 
+      
       - name: Install JavaScript Dependencies
         run: npm install
 
-      # --- 2. Installation de Fastlane et Ruby ---
-      - name: Setup Ruby and Install Fastlane
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3' 
-          bundler-cache: true 
-
-      - name: Install Fastlane
-        run: gem install fastlane
-
-      # --- 3. Synchronisation et Préparation iOS ---
-      - name: Add and Sync iOS (if missing)
+      # --- 2. Préparation du projet iOS ---
+      - name: Add iOS Platform
         run: npx cap add ios || true 
-        # Le || true permet de ne pas échouer si iOS est déjà ajouté
-      - name: Copy Web Assets and Plugins
-        run: npx cap sync ios
+        # Ajoute la plateforme si elle n'existe pas, ou continue si elle existe.
 
-      # --- 4. Compilation et Signature de l'application ---
-      # Il est recommandé d'utiliser un outil comme Fastlane pour la compilation et la signature.
-      # Ce script suppose que vous avez Fastlane configuré.
+      - name: Copy and Sync Web Assets
+        # CLÉ DE LA CORRECTION: Utilise le chemin direct au binaire Capacitor
+        run: ./node_modules/.bin/capacitor sync ios
+
+      # --- 3. Configuration et Compilation native (Nécessite Fastlane) ---
       - name: Build and Deploy to TestFlight (Example)
+        # Cette étape nécessite une configuration Fastlane (ou un script Xcode)
         env:
-          # Passage des secrets à l'environnement Fastlane
           FASTLANE_USER: ${{ secrets.APPLE_ID }}
           FASTLANE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          # Assurez-vous que Fastlane est configuré pour trouver et signer votre projet Xcode
         run: |
-          # Fastlane prend le relai pour compiler le projet Xcode et le signer
-          # fastlane pilot upload --ipa ./path/to/YourApp.ipa
-          echo "Fastlane configuration is required here for signing and deployment."
+          echo "Placeholder: Exécutez ici votre commande Fastlane de compilation."
+          # Exemple de commande Fastlane (à décommenter et configurer) :
+          # fastlane build_and_deploy
 
-      # --- 5. Artefacts (optionnel) ---
+      # --- 4. Artefacts (Récupération du fichier IPA) ---
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        # Ne s'exécute que si les étapes précédentes sont passées (success() est par défaut)
         with:
           name: ios-build-artifact
-          path: # Chemin vers le fichier .ipa généré par Fastlane
+          # ATTENTION : Ce chemin est un exemple. Vous devez le remplacer par le chemin
+          # exact où Fastlane ou Xcode place le fichier .ipa généré.
+          path: ./ios/build/Release-iphoneos/VotreApp.ipa 
+          # Remplacez 'VotreApp.ipa' par le nom réel du paquet !
