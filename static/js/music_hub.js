@@ -1,10 +1,8 @@
-const DEFAULT_PLAYLIST_URL = "https://soundcloud.com/monstercat/sets/monstercat-instinct-vol-1";
+const SOUNDTRACK_URL = "https://soundcloud.com/monstercat/sets/monstercat-instinct-vol-1";
 
 const toggleButton = document.getElementById("music-toggle");
 const toggleIcon = document.getElementById("music-icon");
-const playlistInput = document.getElementById("playlist-input");
-const playlistForm = document.getElementById("playlist-form");
-const defaultButton = document.getElementById("use-default-playlist");
+
 const playerFrame = document.getElementById("sc-player");
 
 const widgetApiReady = new Promise((resolve) => {
@@ -60,7 +58,8 @@ function bindWidgetEvents(currentWidget) {
     });
 }
 
-function loadPlaylist(url, autoPlay = true) {
+function loadSoundtrack(url, autoPlay = false) {
+
     playerFrame.src = buildPlayerSrc(url, autoPlay);
     widget = window.SC.Widget(playerFrame);
     bindWidgetEvents(widget);
@@ -73,23 +72,11 @@ function init() {
             return;
         }
 
-        playlistInput.value = DEFAULT_PLAYLIST_URL;
-        loadPlaylist(DEFAULT_PLAYLIST_URL, false);
+        loadSoundtrack(SOUNDTRACK_URL, false);
 
         toggleButton.addEventListener("click", () => {
             if (!widget) return;
             widget.toggle();
-        });
-
-        playlistForm.addEventListener("submit", (event) => {
-            event.preventDefault();
-            if (!playlistInput.value) return;
-            loadPlaylist(playlistInput.value, true);
-        });
-
-        defaultButton.addEventListener("click", () => {
-            playlistInput.value = DEFAULT_PLAYLIST_URL;
-            loadPlaylist(DEFAULT_PLAYLIST_URL, true);
         });
     });
 }

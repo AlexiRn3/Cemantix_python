@@ -242,34 +242,34 @@
 </footer>
 
 <!-- --- Musique de fond via SoundCloud --- -->
-<div class="music-controls">
-    <div class="music-header">
-        <div class="music-title">Playlist SoundCloud</div>
-        <button id="music-toggle" class="music-toggle-btn" aria-label="Mettre en lecture ou pause">
-            <span id="music-icon" aria-hidden="true">🔊</span>
-        </button>
-    </div>
-    <form id="playlist-form" class="music-form">
-        <label for="playlist-input">Collez l'URL d'une playlist SoundCloud pour la diffuser sur le hub.</label>
-        <div class="music-input-row">
-            <input id="playlist-input" type="url" placeholder="https://soundcloud.com/monartiste/sets/ma-playlist" required />
-            <button type="submit" class="btn">Charger</button>
-        </div>
-        <button type="button" class="btn btn-outline" id="use-default-playlist">Utiliser la playlist par défaut</button>
-        <p class="music-hint">Astuce : choisissez une playlist publique sur SoundCloud. Le lecteur s'actualise dès que vous validez.</p>
-    </form>
-    <div class="music-player-wrapper">
-        <iframe
-            id="sc-player"
-            class="music-player"
-            title="Lecteur SoundCloud"
-            scrolling="no"
-            frameborder="no"
-            allow="autoplay"
-            src="https://w.soundcloud.com/player/?url=&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&visual=false">
-        </iframe>
-    </div>
+<div id="music-toggle"
+     style="
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+        background: var(--card);
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        z-index: 9999;
+     ">
+    <span id="music-icon" style="font-size: 1.4rem;">🔊</span>
 </div>
+
+<iframe
+    id="sc-player"
+    title="Lecteur SoundCloud"
+    style="display:none;"
+    scrolling="no"
+    frameborder="no"
+    allow="autoplay"
+></iframe>
 
 <script src="https://w.soundcloud.com/player/api.js"></script>
 <script type="module" src="/static/js/music_hub.js"></script>
