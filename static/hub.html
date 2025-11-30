@@ -242,37 +242,28 @@
 </footer>
 
 <!-- --- Musique de fond via SoundCloud --- -->
-<div id="music-toggle"
-     style="
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        width: 45px;
-        height: 45px;
-        background: var(--card);
-        border: 2px solid var(--accent);
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-        z-index: 9999;
-     ">
-    <span id="music-icon" style="font-size: 1.4rem;">🔊</span>
-</div>
+<div id="music-drawer">
+    <div id="music-toggle">
+        <span id="music-icon">🎵</span>
+    </div>
 
-<iframe
-    id="sc-player"
-    title="Lecteur SoundCloud"
-    style="display:none;"
-    scrolling="no"
-    frameborder="no"
-    allow="autoplay"
-    data-sound-url=""
-    data-mode-tracks='{}'
-    data-game-duration-tracks='{}'
-></iframe>
+    <div class="music-content">
+        <h3 style="font-size: 1rem; margin: 5px 0 10px 5px; color: var(--accent);">Ambiance Sonore</h3>
+        <iframe
+            id="sc-player"
+            title="Lecteur SoundCloud"
+            scrolling="no"
+            frameborder="no"
+            allow="autoplay"
+            src="" 
+            data-sound-url=""
+            data-mode-tracks='{}'
+            data-game-tracks='{}'
+            data-game-mode-tracks='{}'
+            data-game-duration-tracks='{}'
+        ></iframe>
+    </div>
+</div>
 
 <script src="https://w.soundcloud.com/player/api.js"></script>
 <script type="module" src="/static/js/music_hub.js"></script>
