@@ -1,31 +1,21 @@
 # HUB 
-
+https://on.soundcloud.com/y6cTjSzuqrTvNAEhBe
+https://on.soundcloud.com/iBulywByYneEw2DADI
 # Intrus
-
 ## 1 minute 
-https://suno.com/s/maze2xZC9Mn401YJ
-
+https://on.soundcloud.com/lG4zoPWbbnL9P9YCM3
 ## 3 minutes
-https://suno.com/s/0noNQ5UDwFLH28Z4
-
+https://on.soundcloud.com/86d3XHfI0nysC0Wb6r
 ## 5 minutes
-https://suno.com/s/BEArpKvcDqux9HVi
+https://on.soundcloud.com/bF0Q5sjNXG8yh5GAmP
 ## 10 minutes
-
-
-
 # Dictionnary
 
 ## coop
-https://suno.com/s/bmB2QyPePLyFbJrk
-
+https://on.soundcloud.com/2MchDgbkCyzW6flEDf
 ## blitz
-
+https://on.soundcloud.com/BOIC3yzjzreQBiyUgH
 # Cemantics
-
-https://suno.com/s/maze2xZC9Mn401YJ
-
+https://on.soundcloud.com/2MchDgbkCyzW6flEDf
 # Pendu
-
-https://suno.com/s/TMoaNwis396XVayY
-
+https://on.soundcloud.com/xtancivdY7YnQvjrVQ

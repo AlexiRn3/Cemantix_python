@@ -347,44 +347,51 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 
     # Envoi de l'état initial (Sync)
     try:
-                await websocket.send_json(
-                    {
-                        "type": "state_sync",
-                        "history": history_payload,
-                        "scoreboard": build_scoreboard(room),
-                        "mode": room.mode,
-                        "locked": room.locked,
-                        "game_type": room.game_type,
-                        "public_state": public_state,
-                        "end_time": room.end_time,
-                        "duration": room.duration,
-                    }
-                )
-        
-        await connections.broadcast(room_id, {
-            "type": "scoreboard_update",
-            "scoreboard": build_scoreboard(room),
-            "mode": room.mode,
-            "locked": room.locked,
-            "victory": False,
-            "winner": None
-        })
+        await websocket.send_json(
+            {
+                "type": "state_sync",
+                "history": history_payload,
+                "scoreboard": build_scoreboard(room),
+                "mode": room.mode,
+                "locked": room.locked,
+                "game_type": room.game_type,
+                "public_state": public_state,
+                "end_time": room.end_time,
+                "duration": room.duration,
+            }
+        )
+
+        await connections.broadcast(
+            room_id,
+            {
+                "type": "scoreboard_update",
+                "scoreboard": build_scoreboard(room),
+                "mode": room.mode,
+                "locked": room.locked,
+                "victory": False,
+                "winner": None,
+            },
+        )
+
         while True:
             data = await websocket.receive_json()
-            
+
             if data.get("type") == "chat":
                 content = data.get("content", "").strip()
                 if content:
                     room.add_chat_message(player_name, content)
-                    # On diffuse le message à tout le monde
-                    await connections.broadcast(room_id, {
-                        "type": "chat_message",
-                        "player_name": player_name,
-                        "content": content
-                    })
+
+                    await connections.broadcast(
+                        room_id,
+                        {
+                            "type": "chat_message",
+                            "player_name": player_name,
+                            "content": content,
+                        },
+                    )
 
     except WebSocketDisconnect:
         connections.disconnect(room_id, websocket)
+
     except Exception:
         connections.disconnect(room_id, websocket)
-        # On ne raise pas pour éviter de polluer les logs si c'est juste une déconnexion
