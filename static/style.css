@@ -1090,3 +1090,62 @@ input:disabled {
         opacity: 0;
     }
 }
+
+/* --- LECTEUR AUDIO LATÉRAL (DRAWER) --- */
+
+#music-drawer {
+    position: fixed;
+    top: 100px;
+    right: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: flex-start;
+    transition: transform 0.4s var(--ease-bounce);
+    transform: translateX(300px); /* Caché par défaut (largeur du lecteur) */
+}
+
+#music-drawer.active {
+    transform: translateX(0); /* Visible */
+}
+
+/* Le bouton qui dépasse toujours pour cliquer */
+#music-toggle {
+    width: 50px;
+    height: 50px;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-right: none; /* Collé au lecteur */
+    border-radius: 30px 0 0 30px; /* Arrondi à gauche seulement */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: -5px 5px 15px rgba(0,0,0,0.1);
+    font-size: 1.5rem;
+    position: relative;
+    left: 2px; /* Pour masquer la jointure */
+}
+
+#music-toggle:hover {
+    background: var(--surface-hover);
+}
+
+/* Le conteneur du lecteur SoundCloud */
+.music-content {
+    width: 300px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 0 0 0 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    overflow: hidden;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* Ajustement de l'iframe */
+#sc-player {
+    width: 100%;
+    height: 166px; /* Taille standard widget mini SoundCloud */
+    display: block !important; /* On force l'affichage */
+    border-radius: 12px;
+}
