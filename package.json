@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "@capacitor/ios": "^7.4.4"
+  },
+  "scripts": {
+    "sync-ios": "capacitor sync ios",
+    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }

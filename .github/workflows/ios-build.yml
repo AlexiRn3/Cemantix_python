@@ -26,16 +26,17 @@ jobs:
           node-version: '20' 
       
       - name: Install JavaScript Dependencies
+        # Cette étape installe le script 'sync-ios'
         run: npm install
 
       # --- 2. Préparation du projet iOS ---
       - name: Add iOS Platform
+        # Utiliser npx ici est souvent OK pour l'ajout initial
         run: npx cap add ios || true 
-        # Ajoute la plateforme si elle n'existe pas, ou continue si elle existe.
 
       - name: Copy and Sync Web Assets
-        # CLÉ DE LA CORRECTION: Utilise le chemin direct au binaire Capacitor
-        run: npx cap sync ios
+        # NOUVELLE MÉTHODE FIABLE: Exécute le script 'sync-ios'
+        run: npm run sync-ios
 
       # --- 3. Configuration et Compilation native (Nécessite Fastlane) ---
       - name: Build and Deploy to TestFlight (Example)
@@ -47,16 +48,12 @@ jobs:
           # Assurez-vous que Fastlane est configuré pour trouver et signer votre projet Xcode
         run: |
           echo "Placeholder: Exécutez ici votre commande Fastlane de compilation."
-          # Exemple de commande Fastlane (à décommenter et configurer) :
-          # fastlane build_and_deploy
 
       # --- 4. Artefacts (Récupération du fichier IPA) ---
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
-        # Ne s'exécute que si les étapes précédentes sont passées (success() est par défaut)
+        if: always() # Continue même si la compilation échoue (pour voir les logs)
         with:
           name: ios-build-artifact
-          # ATTENTION : Ce chemin est un exemple. Vous devez le remplacer par le chemin
-          # exact où Fastlane ou Xcode place le fichier .ipa généré.
-          path: ./ios/build/Release-iphoneos/VotreApp.ipa 
-          # Remplacez 'VotreApp.ipa' par le nom réel du paquet !
+          # Le chemin exact vers le fichier .ipa généré par Fastlane
+          path: ./ios/build/Release-iphoneos/VotreApp.ipa
