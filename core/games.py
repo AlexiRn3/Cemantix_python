@@ -482,3 +482,47 @@ class HangmanEngine(GameEngine):
         
     def next_word(self):
         self.new_game()
+
+class SpaceIoEngine(GameEngine):
+    def __init__(self, model):
+        self.model = model
+        self.orbs = [] # Liste des billes {x, y, color, radius}
+        self.map_size = 2000
+        self.generate_orbs(50) # Génère 50 billes au départ
+
+    def new_game(self):
+        self.orbs = []
+        self.generate_orbs(50)
+
+    def generate_orbs(self, count):
+        for _ in range(count):
+            self.orbs.append({
+                "id": str(uuid.uuid4())[:8],
+                "x": random.randint(0, self.map_size),
+                "y": random.randint(0, self.map_size),
+                "color": random.choice(["#ff7675", "#74b9ff", "#55efc4", "#a29bfe"]),
+                "radius": random.randint(5, 10),
+                "value": 10 # XP donné
+            })
+
+    def guess(self, word: str) -> Dict[str, Any]:
+        # Dans ce mode, "guess" sert à envoyer des actions (tir, mouvement) ou consommer une bille
+        # Pour simplifier l'exemple, on l'utilise pour valider la consommation d'une bille
+        orb_id = word # On triche un peu sur le nom du paramètre
+        
+        # On cherche la bille mangée
+        remaining_orbs = [o for o in self.orbs if o["id"] != orb_id]
+        
+        if len(remaining_orbs) < len(self.orbs):
+            self.orbs = remaining_orbs
+            self.generate_orbs(1) # On en recrée une pour l'infini
+            return {"exists": True, "consumed": True, "xp": 10}
+            
+        return {"exists": False}
+
+    def get_public_state(self) -> Dict[str, Any]:
+        return {
+            "game_type": "spaceio",
+            "map_size": self.map_size,
+            "orbs": self.orbs
+        }

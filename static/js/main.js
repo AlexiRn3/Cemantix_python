@@ -2,6 +2,7 @@ import { elements } from "./dom.js";
 import { state } from "./state.js";
 import { addHistoryMessage, setRoomInfo, showModal, closeModal } from "./ui.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti } from "./rendering.js";
+import { initSpaceIo } from "./spaceio.js"; // Assurez-vous que le chemin est bon
 
 // --- GESTION DE SESSION ---
 const STORAGE_KEY = "arcade_user_pseudo";
@@ -372,7 +373,7 @@ function initGameUI(data) {
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
 
     // Gestion de l'affichage des panneaux
-    const elementsToHide = ["hangman-area", "game-instruction", "legend-panel", "intruder-area"];
+    const elementsToHide = ["hangman-area", "game-instruction", "legend-panel", "intruder-area", "spaceio-area"];
     elementsToHide.forEach(id => {
         const el = document.getElementById(id);
         if(el) el.style.display = "none";
@@ -392,6 +393,15 @@ function initGameUI(data) {
         if(area) {
             area.style.display = "block";
             renderHangmanUI(data.public_state);
+        }
+    } else if (data.game_type === "spaceio") {
+        if(form) form.style.display = "none"; // Cache l'input texte
+        const area = document.getElementById("spaceio-area");
+        if (area) {
+            area.style.display = "block";
+            if (data.public_state) {
+                initSpaceIo(data.public_state.orbs, data.public_state.map_size);
+            }
         }
     } else if (data.game_type === "intruder") {
         if(form) form.style.display = "none";

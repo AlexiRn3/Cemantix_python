@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Dict, List, Optional, Any, Set
 
-from core.games import CemantixEngine, DefinitionEngine, GameEngine, IntruderEngine, HangmanEngine
+from core.games import CemantixEngine, DefinitionEngine, GameEngine, IntruderEngine, HangmanEngine, SpaceIoEngine
 
 @dataclass
 class ChatMessage:
@@ -172,9 +172,16 @@ class RoomManager:
         elif game_type == "cemantix":
             engine = CemantixEngine(self.model)
             engine.new_game(custom_seed=custom_seed) # Passe la seed si mode daily
+        elif game_type == "cemantix":
+            engine = CemantixEngine(self.model)
+            engine.new_game(custom_seed=custom_seed)
+        elif game_type == "spaceio":  # <--- AJOUT
+            engine = SpaceIoEngine(self.model)
+            # Pas de new_game() ici car initialisé dans __init__, ou alors on l'appelle pour reset
         else:
             engine = HangmanEngine(self.model)
             engine.new_game()
+        
         
         # Initialisation correcte avec game_type
         room = RoomState(
