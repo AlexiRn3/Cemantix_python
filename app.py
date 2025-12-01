@@ -375,6 +375,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 
         while True:
             data = await websocket.receive_json()
+            msg_type = data.get("type")
 
             if data.get("type") == "chat":
                 content = data.get("content", "").strip()
@@ -389,6 +390,21 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                             "content": content,
                         },
                     )
+            elif msg_type == "guess" and room.game_type == "spaceio":
+                # On traite l'action (manger une bille) directement ici
+                orb_id = data.get("word")
+                result = room.engine.guess(orb_id)
+                
+                if result.get("consumed"):
+                    # On prévient tout le monde qu'une bille a été mangée et remplacée
+                    await connections.broadcast(room_id, {
+                        "type": "guess",
+                        "game_type": "spaceio",
+                        "consumed_orb_id": orb_id,
+                        "new_orb": result.get("new_orb"), # La nouvelle bille créée
+                        "player_name": player_name,
+                        "xp": result.get("xp", 0)
+                    })
 
     except WebSocketDisconnect:
         connections.disconnect(room_id, websocket)

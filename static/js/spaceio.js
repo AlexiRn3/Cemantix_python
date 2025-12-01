@@ -101,11 +101,16 @@ function resize() {
 
 // Stats ajustées pour le gameplay "smooth"
 function applyClassStats(className) {
+    // Reset stats de base avant d'appliquer la classe
+    player.upgrades = [];
+    player.level = 1;
+    player.xp = 0;
+    
     if (className === 'fighter') {
         player.acceleration = 0.9; player.maxSpeed = 9; player.friction = 0.95;
     } else if (className === 'tank') {
         player.maxHealth = 200; player.health = 200; 
-        player.acceleration = 0.5; player.maxSpeed = 6; player.friction = 0.92; // Lourd
+        player.acceleration = 0.5; player.maxSpeed = 6; player.friction = 0.92;
         player.stats.damage = 20; player.stats.reloadTime = 600; player.radius = 30;
     } else if (className === 'sniper') {
         player.acceleration = 0.7; player.maxSpeed = 7;
@@ -123,97 +128,192 @@ function loop(timestamp) {
     animationId = requestAnimationFrame(loop);
 }
 
+export function removeOrb(orbId) {
+    const index = orbs.findIndex(o => o.id === orbId);
+    if (index !== -1) {
+        orbs.splice(index, 1);
+    }
+}
+
 function update(dt) {
-    // 1. PHYSIQUE DE MOUVEMENT (Inertie)
-    // Accélération (Input)
+    // 1. Physique (Avec sécurité NaN)
     if (keys['KeyW'] || keys['ArrowUp'] || keys['KeyZ']) player.vy -= player.acceleration;
     if (keys['KeyS'] || keys['ArrowDown']) player.vy += player.acceleration;
     if (keys['KeyA'] || keys['ArrowLeft'] || keys['KeyQ']) player.vx -= player.acceleration;
     if (keys['KeyD'] || keys['ArrowRight']) player.vx += player.acceleration;
 
-    // Dash
     if (keys['Space'] && player.dashCooldown <= 0) {
-        // Boost instantané dans la direction actuelle
-        player.vx *= 3;
-        player.vy *= 3;
-        player.dashCooldown = 2000;
+        player.vx *= 3; player.vy *= 3; player.dashCooldown = 2000;
     }
     if (player.dashCooldown > 0) player.dashCooldown -= dt;
 
-    // Friction (L'espace freine doucement)
     player.vx *= player.friction;
     player.vy *= player.friction;
+    
+    // SÉCURITÉ : Empêcher les valeurs infinies/NaN qui figent le canvas
+    if (isNaN(player.vx)) player.vx = 0;
+    if (isNaN(player.vy)) player.vy = 0;
 
-    // Limitation de vitesse (Cap)
-    const speed = Math.sqrt(player.vx*player.vx + player.vy*player.vy);
-    if (speed > player.maxSpeed) {
-        const ratio = player.maxSpeed / speed;
-        player.vx *= ratio;
-        player.vy *= ratio;
-    }
-
-    // Application de la vélocité
     player.x += player.vx;
     player.y += player.vy;
 
-    // Bordures (Rebond simple)
+    // Bordures
     if (player.x < player.radius) { player.x = player.radius; player.vx *= -0.5; }
     if (player.x > mapSize - player.radius) { player.x = mapSize - player.radius; player.vx *= -0.5; }
     if (player.y < player.radius) { player.y = player.radius; player.vy *= -0.5; }
     if (player.y > mapSize - player.radius) { player.y = mapSize - player.radius; player.vy *= -0.5; }
 
-    // 2. ROTATION FLUIDE
-    // On calcule l'angle vers la souris (ajusté par la caméra)
-    const targetAngle = Math.atan2(
-        mouse.y - (player.y - camera.y), 
-        mouse.x - (player.x - camera.x)
-    );
-    player.angle = targetAngle; // Rotation instantanée pour la réactivité du tir
-
-    // 3. CAMÉRA FLUIDE (Lerp)
-    // La caméra veut être centrée sur le joueur
+    // 2. Caméra & Angle
     player.cameraTargetX = player.x - canvas.width / 2;
     player.cameraTargetY = player.y - canvas.height / 2;
-
-    // Interpolation linéaire : on se déplace de 10% de la distance à chaque frame
-    // Cela crée cet effet de "retard" naturel
     camera.x += (player.cameraTargetX - camera.x) * 0.1;
     camera.y += (player.cameraTargetY - camera.y) * 0.1;
 
-    // 4. TIRS
+    const targetAngle = Math.atan2(mouse.y - (player.y - camera.y), mouse.x - (player.x - camera.x));
+    if (!isNaN(targetAngle)) player.angle = targetAngle;
+
+    // 3. Tir
     if (keys['MouseLeft'] && Date.now() - player.lastShot > player.stats.reloadTime) {
         shoot();
         player.lastShot = Date.now();
     }
 
-    // Mise à jour balles
+    // 4. Balles
     for (let i = player.bullets.length - 1; i >= 0; i--) {
         let b = player.bullets[i];
-        b.x += Math.cos(b.angle) * b.speed; // Pas besoin de dt si 60fps stable, sinon *(dt/16)
+        b.x += Math.cos(b.angle) * b.speed;
         b.y += Math.sin(b.angle) * b.speed;
         b.life -= dt;
         if (b.life <= 0) player.bullets.splice(i, 1);
     }
 
-    // Collisions
+    // 5. Collisions Orbes
     for (let i = orbs.length - 1; i >= 0; i--) {
         let orb = orbs[i];
-        // Hitbox un peu plus permissive (+10) pour que ce soit agréable
         const dist = Math.hypot(player.x - orb.x, player.y - orb.y);
+        
+        // Hitbox un peu plus large (+10) pour le confort
         if (dist < player.radius + orb.radius + 10) {
             gainXp(orb.value);
-            orbs.splice(i, 1);
+            
+            // Notification Serveur
             if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
-                state.websocket.send(JSON.stringify({ type: "guess", word: orb.id, player_name: "system" }));
+                state.websocket.send(JSON.stringify({ 
+                    type: "guess", 
+                    word: orb.id, // On envoie l'ID de la bille
+                    player_name: "system" 
+                }));
             }
+            orbs.splice(i, 1); // Suppression locale immédiate pour fluidité
         }
     }
 }
 
-// ... (shoot, gainXp, showUpgradeMenu, getUpgradeOptionsForClass, applyUpgrade restent similaires) ...
-// (Assurez-vous de copier ces fonctions du message précédent si besoin, elles n'ont pas besoin de changer pour la physique)
+function shoot() {
+    const createBullet = (angleOffset = 0, speedMult = 1, sizeMult = 1) => {
+        player.bullets.push({
+            x: player.x + Math.cos(player.angle) * player.radius,
+            y: player.y + Math.sin(player.angle) * player.radius,
+            angle: player.angle + angleOffset,
+            speed: player.stats.bulletSpeed * speedMult,
+            radius: player.stats.bulletSize * sizeMult,
+            life: player.stats.bulletLife
+        });
+    };
 
-// ... (Fonction draw reste similaire, juste utiliser la camera.x / camera.y lissés) ...
+    // Logique de classe
+    if (player.class === 'fighter') {
+        if (player.upgrades.includes('spread_shot')) {
+             createBullet(0); createBullet(0.1); createBullet(-0.1);
+             createBullet(Math.PI/4); createBullet(-Math.PI/4);
+        } else if (player.upgrades.includes('triple_shot')) {
+             createBullet(0); createBullet(0.2); createBullet(-0.2);
+        } else if (player.upgrades.includes('double_shot')) {
+             createBullet(0.1); createBullet(-0.1);
+        } else {
+             createBullet(0);
+        }
+    } else if (player.class === 'sniper') {
+        let size = 1;
+        if (player.upgrades.includes('caliber')) size = 2.5;
+        if (player.upgrades.includes('railgun')) createBullet(0, 3, size); 
+        else createBullet(0, 1, size);
+    } else if (player.class === 'tank') {
+        if (player.upgrades.includes('octo_tank')) {
+            for(let i=0; i<8; i++) createBullet(i * (Math.PI/4));
+        } else if (player.upgrades.includes('quad_tank')) {
+            createBullet(0); createBullet(Math.PI/2); createBullet(Math.PI); createBullet(-Math.PI/2);
+        } else if (player.upgrades.includes('twin_flank')) {
+            createBullet(0); createBullet(Math.PI);
+        } else {
+            createBullet(0);
+        }
+    }
+}
+
+function gainXp(amount) {
+    player.xp += amount;
+    if (player.xp >= player.xpToNext) {
+        player.level++;
+        player.xp = 0;
+        player.xpToNext = Math.floor(player.xpToNext * 1.5);
+        document.getElementById("io-level").textContent = player.level;
+        if (player.level % 5 === 0) showUpgradeMenu();
+    }
+    const pct = (player.xp / player.xpToNext) * 100;
+    document.getElementById("io-xp-bar").style.width = `${pct}%`;
+}
+
+function showUpgradeMenu() {
+    const modal = document.getElementById("upgrade-modal");
+    const optionsDiv = document.getElementById("upgrade-options");
+    if (!optionsDiv) return; // Sécurité
+    optionsDiv.innerHTML = "";
+    
+    const options = getUpgradeOptionsForClass(player.class, player.level);
+    options.push({id: 'stat_dmg', name: "💪 Dégâts +", desc: "Augmente les dégâts"});
+    options.push({id: 'stat_spd', name: "⚡ Vitesse +", desc: "Déplacement plus rapide"});
+
+    options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.style.margin = "5px";
+        btn.innerHTML = `<strong>${opt.name}</strong><br><small>${opt.desc}</small>`;
+        btn.onclick = () => {
+            applyUpgrade(opt.id);
+            modal.classList.remove("active");
+        };
+        optionsDiv.appendChild(btn);
+    });
+    modal.classList.add("active");
+}
+
+function getUpgradeOptionsForClass(cls, lvl) {
+    const opts = [];
+    if (cls === 'fighter') {
+        if (lvl === 5) opts.push({id: 'double_shot', name: "Double Tir", desc: "Tire 2 balles parallèles"});
+        if (lvl === 10 && player.upgrades.includes('double_shot')) opts.push({id: 'triple_shot', name: "Triple Tir", desc: "Tire 3 balles en éventail"});
+        if (lvl === 15 && player.upgrades.includes('triple_shot')) opts.push({id: 'spread_shot', name: "Omni-Fighter", desc: "Tirs avant et latéraux"});
+    }
+    if (cls === 'sniper') {
+        if (lvl === 5) opts.push({id: 'scope', name: "Lunette de visée", desc: "La caméra voit plus loin"});
+        if (lvl === 10) opts.push({id: 'caliber', name: "Gros Calibre", desc: "Balles 2.5x plus larges"});
+        if (lvl === 15) opts.push({id: 'railgun', name: "Railgun", desc: "Vitesse de balle hypersonique"});
+    }
+    if (cls === 'tank') {
+        if (lvl === 5) opts.push({id: 'twin_flank', name: "Arrière-Garde", desc: "Tire devant et derrière"});
+        if (lvl === 10) opts.push({id: 'quad_tank', name: "Quadra-Tank", desc: "Tire dans les 4 directions"});
+        if (lvl === 15) opts.push({id: 'octo_tank', name: "Forteresse Octo", desc: "Tire dans 8 directions !"});
+    }
+    return opts;
+}
+
+function applyUpgrade(id) {
+    player.upgrades.push(id);
+    if (id === 'stat_dmg') player.stats.damage += 5;
+    if (id === 'stat_spd') player.speed += 1;
+}
+
 function draw() {
     // Fond Galactique
     ctx.fillStyle = "#161625"; 
