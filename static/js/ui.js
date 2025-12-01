@@ -1,80 +1,83 @@
-import { state } from "./state.js";
-import { addEntry, renderHistory, renderScoreboard, triggerConfetti, updateRoomStatus } from "./rendering.js";
-import { addHistoryMessage, setRoomInfo } from "./ui.js";
-import { addChatMessage } from "./main.js";
+import { elements } from "./dom.js";
 
-export function openWebsocket(playerName) {
-    if (!state.currentRoomId) return;
+let messageTimeout;
 
-    if (state.websocket) {
-        state.websocket.close();
+export function addHistoryMessage(text, duration = 0) {
+    if (!elements.messages) return;
+    
+    // Annule le timer précédent s'il y en a un (pour ne pas effacer le nouveau message trop vite)
+    if (messageTimeout) clearTimeout(messageTimeout);
+
+    elements.messages.innerHTML = "";
+    
+    const msg = document.createElement("div");
+    msg.className = "log";
+    msg.textContent = text;
+    elements.messages.appendChild(msg);
+
+    // Si une durée est précisée, on efface après X millisecondes
+    if (duration > 0) {
+        messageTimeout = setTimeout(() => {
+            elements.messages.innerHTML = ""; // Efface le message
+            messageTimeout = null;
+        }, duration);
+    }
+}
+
+export function setRoomInfo(text) {
+    if (!elements.roomInfo) return;
+    elements.roomInfo.textContent = text;
+}
+
+export function showModal(title, contentHTML, isVictory = false) {
+    const overlay = document.getElementById('modal-overlay');
+    const titleEl = document.getElementById('modal-title');
+    const contentEl = document.getElementById('modal-content');
+    const iconEl = document.getElementById('modal-icon');
+    const actionsDiv = document.getElementById('modal-actions'); // On cible le conteneur
+
+    if (!overlay) return;
+
+    titleEl.textContent = title;
+    contentEl.innerHTML = contentHTML;
+
+    if (isVictory) {
+        iconEl.style.display = "block";
+        iconEl.textContent = "🏆";
+        // NOTE : On laisse main.js gérer les boutons spécifiques de victoire
+    } else {
+        iconEl.style.display = "none";
+        
+        // Pour une erreur standard, on remet proprement le bouton Fermer par défaut
+        // Cela "nettoie" les boutons Rejouer/Hub s'ils étaient là avant
+        actionsDiv.innerHTML = `<button id="modal-close-btn" class="btn">Fermer</button>`;
+        document.getElementById('modal-close-btn').onclick = closeModal;
     }
 
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    state.websocket = new WebSocket(`${protocol}://${window.location.host}/rooms/${state.currentRoomId}/ws?player_name=${encodeURIComponent(playerName)}`);
-
-    state.websocket.onopen = () => {
-        setRoomInfo(`Connecté à la room ${state.currentRoomId} (${state.currentMode})`);
-    };
-
-    state.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.error) {
-            addHistoryMessage(data.message || data.error);
-            return;
-        }
-
-        switch (data.type) {
-            case "state_sync":
-                state.entries = (data.history || []).map(entry => ({
-                    word: entry.word,
-                    temp: entry.temperature,
-                    progression: entry.progression,
-                    player_name: entry.player_name,
-                }));
-                state.currentMode = data.mode;
-                state.roomLocked = data.locked;
-                renderHistory();
-                renderScoreboard(data.scoreboard || []);
-                setRoomInfo(`Room ${state.currentRoomId} (${state.currentMode}) prête.`);
-                const chatHistory = data.chat_history || [];
-                chatHistory.forEach(msg => addChatMessage(msg.player_name, msg.content));
-                break;
-            case "guess":
-                addEntry({
-                    word: data.word,
-                    temp: data.temperature,
-                    progression: data.progression,
-                    player_name: data.player_name,
-                });
-                break;
-            case "scoreboard_update":
-                renderScoreboard(data.scoreboard || []);
-                state.currentMode = data.mode || state.currentMode;
-                state.roomLocked = data.locked;
-                if (data.victory && data.winner) {
-                    const label = state.currentMode === "race" ? "a gagné la course" : "a trouvé le mot";
-                    addHistoryMessage(`🎉 ${data.winner} ${label} !`);
-                    triggerConfetti();
-                }
-                updateRoomStatus();
-                break;
-            case "victory":
-                addHistoryMessage(`🎉 ${data.player_name} a trouvé le mot !`);
-                state.roomLocked = true;
-                triggerConfetti();
-                updateRoomStatus();
-                break;
-            case "chat_message":
-                addChatMessage(data.player_name, data.content);
-                break;
-            default:
-                break;
-        }
-    };
-
-    state.websocket.onclose = () => {
-        setRoomInfo("Déconnecté");
-    };
+    overlay.classList.add('active');
 }
+
+export function closeModal() {
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// --- FIX TOUCHE ENTREE ---
+document.addEventListener('keydown', (e) => {
+    const overlay = document.getElementById('modal-overlay');
+    
+    if (e.key === "Enter" && overlay && overlay.classList.contains('active')) {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        
+        // On cherche d'abord le bouton rejouer, sinon le bouton fermer
+        const replayBtn = document.getElementById('btn-replay');
+        const closeBtn = document.getElementById('modal-close-btn');
+        
+        const targetBtn = replayBtn || closeBtn;
+
+        if (targetBtn && !targetBtn.disabled) {
+            targetBtn.click();
+        }
+    }
+});
