@@ -1261,7 +1261,6 @@ function injectBugButton() {
 }
 
 function openBugModal() {
-    // On récupère le pseudo actuel stocké dans le localStorage (défini dans main.js)
     const currentUser = localStorage.getItem("arcade_user_pseudo") || "Anonyme"; 
     
     const htmlContent = `
@@ -1274,31 +1273,25 @@ function openBugModal() {
         </div>
     `;
 
-    // On utilise ta fonction existante showModal
-    // Note : On doit modifier showModal pour accepter des boutons personnalisés si ce n'est pas déjà fait,
-    // mais ici on va injecter les boutons via le DOM après l'ouverture.
+    // CORRECTION : On appelle directement la fonction importée, sans "window."
+    showModal("SIGNALER UN BUG", htmlContent);
     
-    // Import dynamique ou accès global à showModal (supposé global via window ou import)
-    // Ici on suppose que showModal est accessible globalement ou via le module UI.
-    // Si tu utilises des modules ES6, assure-toi d'avoir importé showModal.
-    
-    if (window.showModal) {
-        window.showModal("SIGNALER UN BUG", htmlContent);
-        
-        // Remplacement des boutons de la modale
-        const actionsDiv = document.getElementById('modal-actions');
-        if (actionsDiv) {
-            actionsDiv.innerHTML = `
-                <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
-                    <button class="btn btn-danger" onclick="sendBugReport('${currentUser}')">Envoyer</button>
-                    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
-                </div>
-            `;
-        }
-        
-        // Focus automatique
-        setTimeout(() => document.getElementById('bug-desc').focus(), 100);
+    // Remplacement des boutons de la modale
+    const actionsDiv = document.getElementById('modal-actions');
+    if (actionsDiv) {
+        actionsDiv.innerHTML = `
+            <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
+                <button class="btn btn-danger" onclick="sendBugReport('${currentUser}')">Envoyer</button>
+                <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+            </div>
+        `;
     }
+    
+    // Focus automatique sur la zone de texte
+    setTimeout(() => {
+        const txt = document.getElementById('bug-desc');
+        if(txt) txt.focus();
+    }, 100);
 }
 
 window.sendBugReport = async function(player) {
