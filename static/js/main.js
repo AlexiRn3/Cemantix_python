@@ -279,6 +279,15 @@ function initGameConnection(roomId, playerName) {
                     feedback: data.feedback,
                     game_type: data.game_type
                 });
+                if (data.game_type === "spaceio" && spaceioModule) {
+                    if (data.new_orb) {
+                        spaceioModule.addNewOrb(data.new_orb);
+                    }
+                    if (data.consumed_orb_id) {
+                        spaceioModule.removeOrb(data.consumed_orb_id);
+                    }
+                    return; 
+                }
                 if (data.team_score !== undefined) {
                     const scoreEl = document.getElementById('score-display');
                     if (scoreEl) scoreEl.textContent = data.team_score;
@@ -287,13 +296,18 @@ function initGameConnection(roomId, playerName) {
                 if (data.game_type === "hangman") updateHangmanUI(data);
                 // Défaite
                 if (data.defeat) handleDefeat(data);
-                if (data.game_type === "spaceio"&& spaceioModule) {
-                    if (data.new_orb) {
-                        spaceioModule.addNewOrb(data.new_orb);
-                    }
+                break;
+            case "scoreboard_update":
+                // Cas spécial SpaceIO : Mise à jour Dashboard
+                if (state.gameType === "spaceio" && spaceioModule) {
+                    spaceioModule.updateLeaderboard(data.scoreboard);
+                } else {
+                    // Cas classique
+                    renderScoreboard(data.scoreboard || []);
+                    state.roomLocked = data.locked;
+                    if (data.victory && data.winner) handleVictory(data.winner, data.scoreboard);
                 }
                 break;
-
             case "scoreboard_update":
                 renderScoreboard(data.scoreboard || []);
                 state.roomLocked = data.locked;

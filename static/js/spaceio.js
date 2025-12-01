@@ -51,6 +51,21 @@ export function addNewOrb(orbData) {
     }
 }
 
+export function updateLeaderboard(playersList) {
+    const listDiv = document.getElementById("io-leaderboard-list");
+    if (!listDiv) return;
+    
+    // Trie par niveau décroissant
+    playersList.sort((a, b) => b.level - a.level || b.score - a.score);
+    
+    listDiv.innerHTML = playersList.map(p => `
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.9rem;">
+            <span>${p.player_name}</span>
+            <span style="color:var(--warning); font-weight:bold;">Niv. ${p.level}</span>
+        </div>
+    `).join('');
+}
+
 export function initSpaceIo(serverOrbs, size) {
     console.log("SpaceIO Engine Starting...");
     orbs = serverOrbs || [];
@@ -215,6 +230,16 @@ function update(dt) {
     }
 }
 
+function sendStatsUpdate() {
+    if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+        state.websocket.send(JSON.stringify({
+            type: "player_update",
+            level: player.level,
+            score: player.score
+        }));
+    }
+}
+
 function shoot() {
     const createBullet = (angleOffset = 0, speedMult = 1, sizeMult = 1) => {
         player.bullets.push({
@@ -259,15 +284,22 @@ function shoot() {
 
 function gainXp(amount) {
     player.xp += amount;
+    player.score += amount; // On garde un score global aussi
+    
+    let levelUp = false;
     if (player.xp >= player.xpToNext) {
         player.level++;
         player.xp = 0;
         player.xpToNext = Math.floor(player.xpToNext * 1.5);
         document.getElementById("io-level").textContent = player.level;
         if (player.level % 5 === 0) showUpgradeMenu();
+        levelUp = true;
     }
+    
+    // Mise à jour UI barre
     const pct = (player.xp / player.xpToNext) * 100;
     document.getElementById("io-xp-bar").style.width = `${pct}%`;
+    sendStatsUpdate(); 
 }
 
 function showUpgradeMenu() {

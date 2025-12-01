@@ -20,13 +20,25 @@ class ChatMessage:
 class PlayerStats:
     attempts: int = 0
     best_similarity: float = 0.0
+    level: int = 1
+    score: int = 0
 
     def to_dict(self):
-        return {"attempts": self.attempts, "best_similarity": self.best_similarity}
+        return {
+            "attempts": self.attempts, 
+            "best_similarity": self.best_similarity,
+            "level": self.level,
+            "score": self.score
+        }
 
     @classmethod
     def from_dict(cls, data: Dict):
-        return cls(attempts=data.get("attempts", 0), best_similarity=data.get("best_similarity", 0.0))
+        return cls(
+            attempts=data.get("attempts", 0), 
+            best_similarity=data.get("best_similarity", 0.0),
+            level=data.get("level", 1),
+            score=data.get("score", 0)
+        )
 
 @dataclass
 class GuessEntry:

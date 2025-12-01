@@ -391,19 +391,36 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                         },
                     )
             elif msg_type == "guess" and room.game_type == "spaceio":
-                # On traite l'action (manger une bille) directement ici
                 orb_id = data.get("word")
                 result = room.engine.guess(orb_id)
                 
                 if result.get("consumed"):
-                    # On prévient tout le monde qu'une bille a été mangée et remplacée
+                    # Mise à jour du score du joueur qui a mangé
+                    if player_name in room.players:
+                        room.players[player_name].score += result.get("xp", 0)
+
                     await connections.broadcast(room_id, {
                         "type": "guess",
                         "game_type": "spaceio",
                         "consumed_orb_id": orb_id,
-                        "new_orb": result.get("new_orb"), # La nouvelle bille créée
-                        "player_name": player_name,
-                        "xp": result.get("xp", 0)
+                        "new_orb": result.get("new_orb"),
+                        "player_name": player_name
+                    })
+            
+            # --- NOUVEAU : MISE À JOUR STATS JOUEUR (LEVEL/XP) ---
+            elif msg_type == "player_update" and room.game_type == "spaceio":
+                level = data.get("level")
+                score = data.get("score")
+                if player_name in room.players:
+                    room.players[player_name].level = level
+                    room.players[player_name].score = score
+                    
+                    # On renvoie le tableau des scores à jour à tout le monde
+                    await connections.broadcast(room_id, {
+                        "type": "scoreboard_update",
+                        "scoreboard": build_scoreboard(room), # Utilise la fonction existante
+                        "mode": room.mode,
+                        "locked": room.locked
                     })
 
     except WebSocketDisconnect:
