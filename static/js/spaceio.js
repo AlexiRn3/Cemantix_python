@@ -106,15 +106,21 @@ function applyClassStats(className) {
     player.level = 1;
     player.xp = 0;
     
+    // CORRECTION BUG 1 : Réduction massive des vitesses et accélérations
     if (className === 'fighter') {
-        player.acceleration = 0.9; player.maxSpeed = 9; player.friction = 0.95;
+        player.acceleration = 0.5; // Était 0.9
+        player.maxSpeed = 6;       // Était 9
+        player.friction = 0.96;    // Plus de friction pour s'arrêter plus vite
     } else if (className === 'tank') {
         player.maxHealth = 200; player.health = 200; 
-        player.acceleration = 0.5; player.maxSpeed = 6; player.friction = 0.92;
+        player.acceleration = 0.3; // Était 0.5
+        player.maxSpeed = 4;       // Était 6
+        player.friction = 0.94;
         player.stats.damage = 20; player.stats.reloadTime = 600; player.radius = 30;
     } else if (className === 'sniper') {
-        player.acceleration = 0.7; player.maxSpeed = 7;
-        player.stats.damage = 40; player.stats.bulletSpeed = 20; 
+        player.acceleration = 0.4; // Était 0.7
+        player.maxSpeed = 5;       // Était 7
+        player.stats.damage = 40; player.stats.bulletSpeed = 18; 
         player.stats.reloadTime = 1100; player.stats.bulletLife = 1500;
     }
 }

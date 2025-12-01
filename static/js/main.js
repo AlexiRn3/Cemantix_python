@@ -287,8 +287,10 @@ function initGameConnection(roomId, playerName) {
                 if (data.game_type === "hangman") updateHangmanUI(data);
                 // Défaite
                 if (data.defeat) handleDefeat(data);
-                if (data.game_type === "spaceio" && data.new_orb && spaceioModule) {
-                    spaceioModule.addNewOrb(data.new_orb);
+                if (data.game_type === "spaceio"&& spaceioModule) {
+                    if (data.new_orb) {
+                        spaceioModule.addNewOrb(data.new_orb);
+                    }
                 }
                 break;
 

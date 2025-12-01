@@ -509,7 +509,7 @@ class SpaceIoEngine(GameEngine):
     def __init__(self, model):
         self.model = model
         self.orbs = [] # Liste des billes {x, y, color, radius}
-        self.map_size = 2000
+        self.map_size = 4000
         self.generate_orbs(50) # Génère 50 billes au départ
 
     def new_game(self):
