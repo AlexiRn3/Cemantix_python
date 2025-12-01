@@ -220,7 +220,7 @@ function initGameConnection(roomId, playerName) {
         document.getElementById("display-room-id").textContent = roomId;
     }
 
-    setRoomInfo(`Connexion à Room ${roomId}...`);
+    setRoomInfo(`Connexion à la Room ${roomId}...`);
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
@@ -254,7 +254,7 @@ function initGameConnection(roomId, playerName) {
                 updateMusicContext(data.game_type, data.mode, data.duration);
                 
                 // On met à jour le statut maintenant que la connexion est confirmée
-                setRoomInfo(`Room ${roomId} • ${data.mode === 'race' ? 'Course' : 'Coop'}`); 
+                setRoomInfo(`${roomId} • ${data.mode === 'race' ? 'Course' : 'Coop'}`); 
 
                 if (data.chat_history) {
                     data.chat_history.forEach(msg => addChatMessage(msg.player_name, msg.content));
@@ -942,6 +942,7 @@ function openDictioConfig() {
     
     // CORRECTION : On définit explicitement le type de jeu
     currentConfigType = "definition"; 
+    openGameConfig('definition');
     
     document.getElementById('config-mode').value = "coop";
     toggleDurationDisplay();
@@ -1031,7 +1032,7 @@ function updateHangmanUI(data) {
 }
 
 // 4. Lancer la partie avec les paramètres choisis
-function submitGameConfig() {
+async function submitGameConfig() {
     // Récupération des valeurs
     // Pour l'intrus, mode sera 'blitz' car on l'a forcé dans openGameConfig
     const mode = document.getElementById('config-mode').value;
@@ -1044,7 +1045,7 @@ function submitGameConfig() {
     closeConfigModal();
     
     // Lancement universel
-    createGame(currentConfigType, mode, duration);
+    await createGame(currentConfigType, mode, duration);
 }
 
 function launchDictio() {

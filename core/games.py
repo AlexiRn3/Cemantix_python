@@ -6,6 +6,11 @@ import unicodedata
 import requests
 from urllib.parse import quote
 
+try:
+    from wiktionaryparser import WiktionaryParser
+except ImportError:
+    WiktionaryParser = None
+
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return "".join([c for c in nfkd_form if not unicodedata.mirrored(c) and c.isalpha()]).upper()
@@ -82,6 +87,15 @@ class DefinitionEngine(GameEngine):
         self.model = model
         self.target_word: Optional[str] = None
         self.definition: Optional[str] = None
+        self.parser = WiktionaryParser() if WiktionaryParser else None
+        # Liste de secours si l'API échoue
+        self.fallback_words = [
+            ("ordinateur", "Machine électronique de traitement de l'information."),
+            ("montagne", "Élévation naturelle du sol."),
+            ("musique", "Art de combiner des sons."),
+            ("bibliothèque", "Lieu où l'on conserve des livres."),
+            ("océan", "Vaste étendue d'eau salée.")
+        ]
 
     def clean_wikicode(self, text: str) -> str:
         if not text:
@@ -211,6 +225,12 @@ class DefinitionEngine(GameEngine):
             and self.model.get_vecattr(w, "count") > 60000
         ]
         print(f"[DEF] {len(frequent_words)} mots fréquents sélectionnés")
+
+        if not self.parser:
+            word, definition = random.choice(self.fallback_words)
+            self.target_word = word
+            self.definition = definition
+            return
 
         # Essayer jusqu’à trouver un mot valide
         for attempt in range(10):
