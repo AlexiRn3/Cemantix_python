@@ -202,14 +202,6 @@ function applyClassStats(className) {
     }
 }
 
-function loop(timestamp) {
-    if (!isRunning) return;
-    const dt = timestamp - lastTime;
-    lastTime = timestamp;
-    if (dt < 100) { update(dt); draw(); }
-    animationId = requestAnimationFrame(loop);
-}
-
 function update(dt) {
     // 1. Physique Joueur (Inchangé)
     if (keys['KeyW'] || keys['ArrowUp'] || keys['KeyZ']) player.vy -= player.acceleration;

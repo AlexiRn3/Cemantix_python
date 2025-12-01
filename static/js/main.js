@@ -2,7 +2,6 @@ import { elements } from "./dom.js";
 import { state } from "./state.js";
 import { addHistoryMessage, setRoomInfo, showModal, closeModal } from "./ui.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti } from "./rendering.js";
-import { initSpaceIo } from "./spaceio.js"; // Assurez-vous que le chemin est bon
 
 // --- GESTION DE SESSION ---
 const STORAGE_KEY = "arcade_user_pseudo";
