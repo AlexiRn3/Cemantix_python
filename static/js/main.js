@@ -1273,7 +1273,6 @@ function openBugModal() {
         </div>
     `;
 
-    // CORRECTION : On appelle directement la fonction importée, sans "window."
     showModal("SIGNALER UN BUG", htmlContent);
     
     // Remplacement des boutons de la modale
