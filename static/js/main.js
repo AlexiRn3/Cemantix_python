@@ -287,6 +287,9 @@ function initGameConnection(roomId, playerName) {
                 if (data.game_type === "hangman") updateHangmanUI(data);
                 // Défaite
                 if (data.defeat) handleDefeat(data);
+                if (data.game_type === "spaceio" && data.new_orb && spaceioModule) {
+                    spaceioModule.addNewOrb(data.new_orb);
+                }
                 break;
 
             case "scoreboard_update":
@@ -401,6 +404,9 @@ function initGameUI(data) {
         if (mainContainer) mainContainer.style.display = "none"; // On cache tout le site "classique"
         const form = document.getElementById("guess-form");
         if(form) form.style.display = "none";
+        document.querySelectorAll(".user-controls, .site-footer, #music-toggle").forEach(el => {
+            if(el) el.style.display = "none";
+        });
 
         const area = document.getElementById("spaceio-area");
         if (area) {
@@ -1210,13 +1216,19 @@ function quitSpaceIo() {
     const ioArea = document.getElementById("spaceio-area");
     const mainContainer = document.getElementById("main-container");
     
+    // 1. Réafficher l'interface standard
     if (ioArea) ioArea.style.display = "none";
-    if (mainContainer) mainContainer.style.display = "block"; // On réaffiche le site normal
+    if (mainContainer) mainContainer.style.display = "block";
     
-    // On arrête la boucle de jeu (optionnel si on veut économiser des ressources)
+    // Réafficher les éléments cachés
+    document.querySelectorAll(".user-controls, .site-footer, #music-toggle").forEach(el => {
+        if(el) el.style.display = ""; // Reset display CSS
+    });
+    
+    // Stop boucle
     if (window.stopSpaceIo) window.stopSpaceIo();
     
-    window.location.href = "/"; // Retour au hub simple
+    window.location.href = "/"; 
 }
 
 document.getElementById('btn-join').onclick = () => {

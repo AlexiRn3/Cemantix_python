@@ -45,45 +45,47 @@ const CLASSES = {
     sniper: { name: "Sniper", color: "#9b59b6" }
 };
 
+export function addNewOrb(orbData) {
+    if (orbData) {
+        orbs.push(orbData);
+    }
+}
+
 export function initSpaceIo(serverOrbs, size) {
+    console.log("SpaceIO Engine Starting...");
     orbs = serverOrbs || [];
     mapSize = size || 2000;
     canvas = document.getElementById("spaceio-canvas");
     ctx = canvas.getContext("2d");
     
-    // Resize initial pour couvrir tout l'écran
     resize();
     window.addEventListener("resize", resize);
     
-    // Gestion propre des inputs
-    window.addEventListener("keydown", e => keys[e.code] = true); // Utiliser e.code (KeyW, KeyA...) c'est mieux pour AZERTY/QWERTY
+    // Inputs
+    window.addEventListener("keydown", e => keys[e.code] = true);
     window.addEventListener("keyup", e => keys[e.code] = false);
-    
-    canvas.addEventListener("mousemove", e => {
-        // Pas besoin de getBoundingClientRect en full screen fixed, clientX suffit
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;
-    });
+    canvas.addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
     canvas.addEventListener("mousedown", () => keys['MouseLeft'] = true);
     canvas.addEventListener("mouseup", () => keys['MouseLeft'] = false);
     
-    // Exposition pour le bouton "Quitter"
+    // Fonctions globales pour l'UI
     window.stopSpaceIo = () => {
         isRunning = false;
         cancelAnimationFrame(animationId);
     };
 
     window.startGameIo = (className) => {
+        console.log("Class selected:", className);
         player.class = className;
         applyClassStats(className);
-        document.getElementById("io-start-screen").style.display = "none";
         
-        // Reset position
+        const startScreen = document.getElementById("io-start-screen");
+        if (startScreen) startScreen.style.display = "none";
+        
+        // Reset
         player.x = Math.random() * mapSize;
         player.y = Math.random() * mapSize;
         player.vx = 0; player.vy = 0;
-        
-        // Init caméra direct sur le joueur pour pas que ça "saute" au début
         camera.x = player.x - canvas.width / 2;
         camera.y = player.y - canvas.height / 2;
         
