@@ -50,7 +50,7 @@ export function renderHistory(highlightWord = null) {
             
             const widthPercent = Math.max(0, (entry.progression || 0) / 10);
             
-            meta = `<div class="meta">${icon} ${tempVal}</div>`;
+            meta = `<div class="meta">${tempVal} ${icon}</div>`;
             bar = `<div class="score-bar"><div class="fill" style="width:${widthPercent}%"></div></div>`;
         } else {
             meta = `<div class="meta" style="color:var(--accent);">${entry.feedback || ""}</div>`;
