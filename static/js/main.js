@@ -372,6 +372,8 @@ function initGameUI(data) {
     const titleEl = document.getElementById("game-title");
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
 
+    const mainContainer = document.getElementById("main-container");
+
     // Gestion de l'affichage des panneaux
     const elementsToHide = ["hangman-area", "game-instruction", "legend-panel", "intruder-area", "spaceio-area"];
     elementsToHide.forEach(id => {
@@ -395,12 +397,23 @@ function initGameUI(data) {
             renderHangmanUI(data.public_state);
         }
     } else if (data.game_type === "spaceio") {
-        if(form) form.style.display = "none"; // Cache l'input texte
+        // MODE PLEIN ÉCRAN
+        if (mainContainer) mainContainer.style.display = "none"; // On cache tout le site "classique"
+        const form = document.getElementById("guess-form");
+        if(form) form.style.display = "none";
+
         const area = document.getElementById("spaceio-area");
         if (area) {
             area.style.display = "block";
+            
+            // Attacher l'événement quitter
+            document.getElementById("io-quit-btn").onclick = quitSpaceIo;
+
             if (data.public_state) {
-                initSpaceIo(data.public_state.orbs, data.public_state.map_size);
+                // On passe l'import dynamique ici pour éviter de charger le gros script si pas besoin
+                import("./spaceio.js").then(module => {
+                    module.initSpaceIo(data.public_state.orbs, data.public_state.map_size);
+                });
             }
         }
     } else if (data.game_type === "intruder") {
@@ -1192,6 +1205,19 @@ window.createGame = async function(type, mode = 'coop', duration = 0) {
     const data = await res.json();
     window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(name)}`;
 };
+
+function quitSpaceIo() {
+    const ioArea = document.getElementById("spaceio-area");
+    const mainContainer = document.getElementById("main-container");
+    
+    if (ioArea) ioArea.style.display = "none";
+    if (mainContainer) mainContainer.style.display = "block"; // On réaffiche le site normal
+    
+    // On arrête la boucle de jeu (optionnel si on veut économiser des ressources)
+    if (window.stopSpaceIo) window.stopSpaceIo();
+    
+    window.location.href = "/"; // Retour au hub simple
+}
 
 document.getElementById('btn-join').onclick = () => {
     if (!verifierPseudo()) return;

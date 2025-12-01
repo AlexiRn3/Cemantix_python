@@ -77,6 +77,27 @@
     </div>
 </div>
 
+
+<div id="spaceio-area" style="display:none; width:100%; height:80vh; position:relative; background:#1a1a2e; overflow:hidden; border-radius:var(--radius-l);">
+    <canvas id="spaceio-canvas" style="display:block;"></canvas>
+    
+    <div id="io-hud" style="position:absolute; top:20px; left:20px; color:white; font-family:var(--font-heading);">
+        <div>Niveau <span id="io-level">1</span></div>
+        <div style="width:200px; height:10px; background:rgba(255,255,255,0.2); margin-top:5px; border-radius:5px;">
+            <div id="io-xp-bar" style="width:0%; height:100%; background:var(--success); border-radius:5px; transition:width 0.2s;"></div>
+        </div>
+    </div>
+
+    <div id="io-start-screen" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; z-index:10;">
+        <h2>Choisissez votre Classe</h2>
+        <div style="display:flex; gap:20px; margin-top:30px;">
+            <button class="btn" onclick="window.startGameIo('fighter')">✈️ Fighter (Standard)</button>
+            <button class="btn" onclick="window.startGameIo('tank')">🛡️ Tank</button>
+            <button class="btn" onclick="window.startGameIo('sniper')">🎯 Sniper</button>
+        </div>
+    </div>
+</div>
+
 <div id="modal-overlay" class="modal-overlay">
     <div class="modal-box">
         <div id="modal-icon" class="winner-badge" style="display:none; color: var(--success);">✦</div>
@@ -122,26 +143,6 @@
             data-game-mode-tracks='{}'
             data-game-duration-tracks='{}'
         ></iframe>
-    </div>
-</div>
-
-<div id="spaceio-area" style="display:none; width:100%; height:80vh; position:relative; background:#1a1a2e; overflow:hidden; border-radius:var(--radius-l);">
-    <canvas id="spaceio-canvas" style="display:block;"></canvas>
-    
-    <div id="io-hud" style="position:absolute; top:20px; left:20px; color:white; font-family:var(--font-heading);">
-        <div>Niveau <span id="io-level">1</span></div>
-        <div style="width:200px; height:10px; background:rgba(255,255,255,0.2); margin-top:5px; border-radius:5px;">
-            <div id="io-xp-bar" style="width:0%; height:100%; background:var(--success); border-radius:5px; transition:width 0.2s;"></div>
-        </div>
-    </div>
-
-    <div id="io-start-screen" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; z-index:10;">
-        <h2>Choisissez votre Classe</h2>
-        <div style="display:flex; gap:20px; margin-top:30px;">
-            <button class="btn" onclick="window.startGameIo('fighter')">✈️ Fighter (Standard)</button>
-            <button class="btn" onclick="window.startGameIo('tank')">🛡️ Tank</button>
-            <button class="btn" onclick="window.startGameIo('sniper')">🎯 Sniper</button>
-        </div>
     </div>
 </div>
 
