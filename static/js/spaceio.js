@@ -129,15 +129,23 @@ export function initSpaceIo(serverOrbs, size, localName) {
     }
 
     window.startGameIo = (className) => {
+        if (!className || typeof className !== 'string') {
+            console.error("Tentative de démarrage sans classe !");
+            return;
+        }
         player.class = className;
         applyClassStats(className);
         document.getElementById("io-start-screen").style.display = "none";
+
+        if (startScreen) startScreen.style.display = "none";
         
         respawnPlayer();
         
         isRunning = true;
         lastTime = performance.now();
         loop(lastTime);
+
+        sendStatsUpdate();
     };
 
     // Fonction pour revivre
