@@ -172,9 +172,6 @@ class RoomManager:
         elif game_type == "cemantix":
             engine = CemantixEngine(self.model)
             engine.new_game(custom_seed=custom_seed) # Passe la seed si mode daily
-        elif game_type == "cemantix":
-            engine = CemantixEngine(self.model)
-            engine.new_game(custom_seed=custom_seed)
         elif game_type == "spaceio":  # <--- AJOUT
             engine = SpaceIoEngine(self.model)
             # Pas de new_game() ici car initialisé dans __init__, ou alors on l'appelle pour reset
