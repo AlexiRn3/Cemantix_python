@@ -279,19 +279,25 @@ function initGameConnection(roomId, playerName) {
                     feedback: data.feedback,
                     game_type: data.game_type
                 });
-                if (data.game_type === "spaceio" && spaceioModule) {
-                    if (data.new_orb) {
-                        spaceioModule.addNewOrb(data.new_orb);
+                    if (data.game_type === "spaceio" && spaceioModule) {
+                        if (data.new_orb) spaceioModule.addNewOrb(data.new_orb);
+                        if (data.consumed_orb_id) spaceioModule.removeOrb(data.consumed_orb_id);
+                        return;
                     }
-                    if (data.consumed_orb_id) {
-                        spaceioModule.removeOrb(data.consumed_orb_id);
+                    if (data.team_score !== undefined) {
+                        const scoreEl = document.getElementById('score-display');
+                        if (scoreEl) scoreEl.textContent = data.team_score;
                     }
-                    return; 
-                }
-                if (data.team_score !== undefined) {
-                    const scoreEl = document.getElementById('score-display');
-                    if (scoreEl) scoreEl.textContent = data.team_score;
-                }
+                case "player_move":
+                    if (state.gameType === "spaceio" && spaceioModule) {
+                        spaceioModule.updateEnemy(data);
+                    }
+                break;
+                case "player_shoot":
+                    if (state.gameType === "spaceio" && spaceioModule) {
+                        spaceioModule.spawnEnemyBullets(data);
+                    }
+                break;
                 // Mise à jour Pendu
                 if (data.game_type === "hangman") updateHangmanUI(data);
                 // Défaite
@@ -423,6 +429,15 @@ function initGameUI(data) {
         document.querySelectorAll(".user-controls, .site-footer, #music-toggle").forEach(el => {
             if(el) el.style.display = "none";
         });
+
+        if (data.public_state) {
+            import("./spaceio.js").then(module => {
+                spaceioModule = module;
+                // IMPORTANT : On passe le nom du joueur local en 3e argument
+                const playerName = document.getElementById('player-name')?.value || localStorage.getItem("arcade_user_pseudo");
+                module.initSpaceIo(data.public_state.orbs, data.public_state.map_size, playerName);
+            });
+        }
 
         const area = document.getElementById("spaceio-area");
         if (area) {

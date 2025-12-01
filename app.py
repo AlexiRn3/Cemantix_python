@@ -390,37 +390,61 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                             "content": content,
                         },
                     )
-            elif msg_type == "guess" and room.game_type == "spaceio":
+            elif room.game_type == "spaceio":
                 orb_id = data.get("word")
                 result = room.engine.guess(orb_id)
                 
-                if result.get("consumed"):
-                    # Mise à jour du score du joueur qui a mangé
+                if msg_type == "guess":
+                    # Manger une bille (inchangé)
+                    orb_id = data.get("word")
+                    result = room.engine.guess(orb_id)
+                    if result.get("consumed"):
+                        if player_name in room.players:
+                            room.players[player_name].score += result.get("xp", 0)
+                        await connections.broadcast(room_id, {
+                            "type": "guess",
+                            "game_type": "spaceio",
+                            "consumed_orb_id": orb_id,
+                            "new_orb": result.get("new_orb"),
+                            "player_name": player_name
+                        })
+                
+                elif msg_type == "player_update":
+                    # Mise à jour score/niveau (inchangé)
                     if player_name in room.players:
-                        room.players[player_name].score += result.get("xp", 0)
+                        room.players[player_name].level = data.get("level", 1)
+                        room.players[player_name].score = data.get("score", 0)
+                        await connections.broadcast(room_id, {
+                            "type": "scoreboard_update",
+                            "scoreboard": build_scoreboard(room),
+                            "mode": room.mode
+                        })
 
+                # NOUVEAU : Relais de mouvement (Optimisé : on ne stocke pas, on diffuse juste)
+                elif msg_type == "player_move":
                     await connections.broadcast(room_id, {
-                        "type": "guess",
-                        "game_type": "spaceio",
-                        "consumed_orb_id": orb_id,
-                        "new_orb": result.get("new_orb"),
-                        "player_name": player_name
+                        "type": "player_move",
+                        "player_name": player_name,
+                        "x": data.get("x"),
+                        "y": data.get("y"),
+                        "angle": data.get("angle"),
+                        "class": data.get("class")
                     })
-            
-            # --- NOUVEAU : MISE À JOUR STATS JOUEUR (LEVEL/XP) ---
-            elif msg_type == "player_update" and room.game_type == "spaceio":
-                level = data.get("level")
-                score = data.get("score")
-                if player_name in room.players:
-                    room.players[player_name].level = level
-                    room.players[player_name].score = score
-                    
-                    # On renvoie le tableau des scores à jour à tout le monde
+
+                # NOUVEAU : Relais de tir
+                elif msg_type == "player_shoot":
                     await connections.broadcast(room_id, {
-                        "type": "scoreboard_update",
-                        "scoreboard": build_scoreboard(room), # Utilise la fonction existante
-                        "mode": room.mode,
-                        "locked": room.locked
+                        "type": "player_shoot",
+                        "player_name": player_name,
+                        "bullets": data.get("bullets") # Liste des balles tirées
+                    })
+
+                # NOUVEAU : Dégâts subis (Mort)
+                elif msg_type == "player_death":
+                    await connections.broadcast(room_id, {
+                        "type": "chat_message",
+                        "player_name": "SYSTÈME",
+                        "content": f"💥 {player_name} a été détruit !"
                     })
 
     except WebSocketDisconnect:

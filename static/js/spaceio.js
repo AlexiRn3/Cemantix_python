@@ -5,6 +5,7 @@ let animationId;
 let lastTime = 0;
 let isRunning = false;
 let abortController = null; // Pour nettoyer les événements
+let isGameInitialized = false;
 
 let player = {
     x: 1000, y: 1000, vx: 0, vy: 0, angle: 0, radius: 20,
@@ -19,6 +20,8 @@ let mapSize = 2000;
 let keys = {};
 let mouse = { x: 0, y: 0 };
 let camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+let enemyBullets = [];
+let enemies = {};
 
 const CLASSES = {
     fighter: { name: "Fighter", color: "#3498db" },
@@ -34,6 +37,42 @@ export function removeOrb(orbId) {
     const index = orbs.findIndex(o => o.id === orbId);
     if (index !== -1) orbs.splice(index, 1);
 }
+export function updateEnemy(data) {
+    // On ignore nos propres messages (écho)
+    if (!data.player_name || data.player_name === player.player_name_local) return;
+
+    if (!enemies[data.player_name]) {
+        enemies[data.player_name] = { 
+            x: data.x, y: data.y, angle: data.angle, 
+            class: data.class || 'fighter', 
+            targetX: data.x, targetY: data.y // Pour interpolation future
+        };
+    } else {
+        const en = enemies[data.player_name];
+        en.x = data.x; // Pour l'instant on téléporte (mise à jour simple)
+        en.y = data.y;
+        en.angle = data.angle;
+        en.class = data.class;
+    }
+}
+
+export function spawnEnemyBullets(data) {
+    if (!data.player_name || data.player_name === player.player_name_local) return;
+    
+    if (data.bullets && Array.isArray(data.bullets)) {
+        data.bullets.forEach(b => {
+            // On ajoute à la liste des dangers
+            enemyBullets.push({
+                x: b.x, y: b.y, 
+                angle: b.angle, 
+                speed: b.speed, 
+                radius: b.radius, 
+                life: b.life,
+                damage: 10 // Dégât par défaut ou transmis par le serveur
+            });
+        });
+    }
+}
 
 export function updateLeaderboard(playersList) {
     const listDiv = document.getElementById("io-leaderboard-list");
@@ -47,75 +86,72 @@ export function updateLeaderboard(playersList) {
     `).join('');
 }
 
-export function initSpaceIo(serverOrbs, size) {
-    console.log("SpaceIO Engine Initializing...");
-    
-    // 1. Nettoyage des anciens écouteurs pour éviter les doublons/conflits
-    if (abortController) abortController.abort();
-    abortController = new AbortController();
-    const signal = { signal: abortController.signal };
-
-    // 2. Arrêt propre de toute instance précédente
-    if (isRunning) {
-        isRunning = false;
-        if (animationId) cancelAnimationFrame(animationId);
+export function initSpaceIo(serverOrbs, size, localName) {
+    // CORRECTION BUG : Si le jeu tourne déjà, on ne touche à rien !
+    if (isGameInitialized) {
+        console.log("SpaceIO déjà initialisé, reprise...");
+        return;
     }
+    isGameInitialized = true;
 
-    // 3. Reset de l'interface
-    const startScreen = document.getElementById("io-start-screen");
-    if (startScreen) startScreen.style.display = "flex"; // On force l'affichage
-
-    // Données
+    console.log("SpaceIO Engine Starting...");
+    player.player_name_local = localName; // On stocke notre pseudo pour filtrer les messages
+    
     orbs = serverOrbs || [];
     mapSize = size || 2000;
     canvas = document.getElementById("spaceio-canvas");
     ctx = canvas.getContext("2d");
     
+    // Reset interface
+    document.getElementById("io-start-screen").style.display = "flex";
+    document.getElementById("io-game-over").style.display = "none"; // On cache l'écran de mort
+
     resize();
+    window.addEventListener("resize", resize);
     
-    // 4. Attachement des événements avec le signal d'abort
-    window.addEventListener("resize", resize, signal);
-    window.addEventListener("keydown", e => keys[e.code] = true, signal);
-    window.addEventListener("keyup", e => keys[e.code] = false, signal);
-    
-    canvas.addEventListener("mousemove", e => { 
-        mouse.x = e.clientX; 
-        mouse.y = e.clientY; 
-    }, signal);
-    
-    canvas.addEventListener("mousedown", () => keys['MouseLeft'] = true, signal);
-    canvas.addEventListener("mouseup", () => keys['MouseLeft'] = false, signal);
+    // Inputs
+    window.addEventListener("keydown", e => keys[e.code] = true);
+    window.addEventListener("keyup", e => keys[e.code] = false);
+    canvas.addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+    canvas.addEventListener("mousedown", () => keys['MouseLeft'] = true);
+    canvas.addEventListener("mouseup", () => keys['MouseLeft'] = false);
     
     window.stopSpaceIo = () => {
         isRunning = false;
-        if(animationId) cancelAnimationFrame(animationId);
-        if (abortController) abortController.abort();
+        isGameInitialized = false;
+        if (animationId) cancelAnimationFrame(animationId);
     };
 
     window.startGameIo = (className) => {
-        if (!className) return; // Sécurité contre les appels vides
-
-        console.log("Game Starting with class:", className);
         player.class = className;
         applyClassStats(className);
+        document.getElementById("io-start-screen").style.display = "none";
         
-        if (startScreen) startScreen.style.display = "none";
+        respawnPlayer();
         
-        // Reset Position Joueur
-        player.x = Math.random() * mapSize; 
-        player.y = Math.random() * mapSize;
-        player.vx = 0; player.vy = 0;
-        player.bullets = [];
-        
-        // Centrage caméra immédiat
-        camera.x = player.x - canvas.width / 2;
-        camera.y = player.y - canvas.height / 2;
-        
-        sendStatsUpdate();
         isRunning = true;
         lastTime = performance.now();
         loop(lastTime);
     };
+
+    // Fonction pour revivre
+    window.respawnIo = () => {
+        document.getElementById("io-game-over").style.display = "none";
+        respawnPlayer();
+        isRunning = true;
+        loop(performance.now());
+    };
+}
+
+function respawnPlayer() {
+    player.x = Math.random() * mapSize;
+    player.y = Math.random() * mapSize;
+    player.vx = 0; player.vy = 0;
+    player.health = player.maxHealth;
+    player.bullets = [];
+    camera.x = player.x - canvas.width / 2;
+    camera.y = player.y - canvas.height / 2;
+    updateHud();
 }
 
 function sendStatsUpdate() {
@@ -126,6 +162,14 @@ function sendStatsUpdate() {
             score: player.score
         }));
     }
+}
+
+function loop(timestamp) {
+    if (!isRunning) return;
+    const dt = timestamp - lastTime;
+    lastTime = timestamp;
+    if (dt < 100) { update(dt); draw(); }
+    animationId = requestAnimationFrame(loop);
 }
 
 function resize() {
@@ -167,27 +211,26 @@ function loop(timestamp) {
 }
 
 function update(dt) {
-    // Mouvements
+    // 1. Physique Joueur (Inchangé)
     if (keys['KeyW'] || keys['ArrowUp'] || keys['KeyZ']) player.vy -= player.acceleration;
     if (keys['KeyS'] || keys['ArrowDown']) player.vy += player.acceleration;
     if (keys['KeyA'] || keys['ArrowLeft'] || keys['KeyQ']) player.vx -= player.acceleration;
     if (keys['KeyD'] || keys['ArrowRight']) player.vx += player.acceleration;
-
+    
     if (keys['Space'] && player.dashCooldown <= 0) {
         player.vx *= 3; player.vy *= 3; player.dashCooldown = 2000;
     }
     if (player.dashCooldown > 0) player.dashCooldown -= dt;
 
     player.vx *= player.friction; player.vy *= player.friction;
-    if (isNaN(player.vx)) player.vx = 0;
-    if (isNaN(player.vy)) player.vy = 0;
+    if(isNaN(player.vx)) player.vx = 0; if(isNaN(player.vy)) player.vy = 0;
     player.x += player.vx; player.y += player.vy;
 
     // Bordures
-    if (player.x < player.radius) { player.x = player.radius; player.vx *= -0.5; }
-    if (player.x > mapSize - player.radius) { player.x = mapSize - player.radius; player.vx *= -0.5; }
-    if (player.y < player.radius) { player.y = player.radius; player.vy *= -0.5; }
-    if (player.y > mapSize - player.radius) { player.y = mapSize - player.radius; player.vy *= -0.5; }
+    if (player.x < player.radius) player.x = player.radius;
+    if (player.x > mapSize - player.radius) player.x = mapSize - player.radius;
+    if (player.y < player.radius) player.y = player.radius;
+    if (player.y > mapSize - player.radius) player.y = mapSize - player.radius;
 
     // Caméra
     player.cameraTargetX = player.x - canvas.width / 2;
@@ -195,17 +238,16 @@ function update(dt) {
     camera.x += (player.cameraTargetX - camera.x) * 0.1;
     camera.y += (player.cameraTargetY - camera.y) * 0.1;
 
-    // Angle
+    // Angle & Tir
     const targetAngle = Math.atan2(mouse.y - (player.y - camera.y), mouse.x - (player.x - camera.x));
     if (!isNaN(targetAngle)) player.angle = targetAngle;
 
-    // Tir
     if (keys['MouseLeft'] && Date.now() - player.lastShot > player.stats.reloadTime) {
         shoot();
         player.lastShot = Date.now();
     }
 
-    // Balles
+    // 2. Mise à jour Balles (Locales)
     for (let i = player.bullets.length - 1; i >= 0; i--) {
         let b = player.bullets[i];
         b.x += Math.cos(b.angle) * b.speed;
@@ -214,7 +256,25 @@ function update(dt) {
         if (b.life <= 0) player.bullets.splice(i, 1);
     }
 
-    // Collisions
+    // 3. Mise à jour Balles (Ennemies) & Dégâts
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        let b = enemyBullets[i];
+        b.x += Math.cos(b.angle) * b.speed;
+        b.y += Math.sin(b.angle) * b.speed;
+        b.life -= dt;
+
+        // Collision Balle Ennemie -> MOI
+        const dist = Math.hypot(player.x - b.x, player.y - b.y);
+        if (dist < player.radius + b.radius) {
+            takeDamage(b.damage || 10); // Aïe
+            enemyBullets.splice(i, 1); // La balle disparaît
+            continue;
+        }
+
+        if (b.life <= 0) enemyBullets.splice(i, 1);
+    }
+
+    // 4. Orbes
     for (let i = orbs.length - 1; i >= 0; i--) {
         let orb = orbs[i];
         const dist = Math.hypot(player.x - orb.x, player.y - orb.y);
@@ -225,6 +285,57 @@ function update(dt) {
             }
             orbs.splice(i, 1);
         }
+    }
+
+    // 5. Envoi position (Réseau) - Tous les 50ms environ
+    if (Date.now() - lastPosUpdate > 50) {
+        if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+            state.websocket.send(JSON.stringify({
+                type: "player_move",
+                x: Math.round(player.x),
+                y: Math.round(player.y),
+                angle: parseFloat(player.angle.toFixed(2)),
+                class: player.class
+            }));
+        }
+        lastPosUpdate = Date.now();
+    }
+}
+
+function takeDamage(amount) {
+    player.health -= amount;
+    if (player.health <= 0) {
+        player.health = 0;
+        handleDeath();
+    }
+    updateHud();
+}
+
+function updateHud() {
+    // Barre de vie
+    const hpBar = document.getElementById("io-hp-bar");
+    if (hpBar) {
+        const pct = (player.health / player.maxHealth) * 100;
+        hpBar.style.width = `${pct}%`;
+        // Changement couleur selon PV
+        if (pct < 30) hpBar.style.background = "#e74c3c";
+        else hpBar.style.background = "#2ecc71";
+    }
+}
+
+function handleDeath() {
+    isRunning = false;
+    
+    // Envoyer notif mort
+    if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+        state.websocket.send(JSON.stringify({ type: "player_death" }));
+    }
+    
+    // Afficher écran de fin
+    const deadScreen = document.getElementById("io-game-over");
+    if (deadScreen) {
+        deadScreen.style.display = "flex";
+        document.getElementById("io-final-score").textContent = player.score;
     }
 }
 
