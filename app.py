@@ -7,6 +7,7 @@ from starlette.staticfiles import StaticFiles
 from typing import Dict, List, Any, Optional
 import time
 from datetime import date
+import httpx
 
 from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
@@ -27,6 +28,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Rendre la playlist musicale disponible côté client pour éviter le hardcode des liens
 app.mount("/music", StaticFiles(directory="music"), name="music")
 
+class BugReportRequest(BaseModel):
+    player_name: str
+    description: str
+    context: str = "Inconnu"
 
 class CreateRoomRequest(BaseModel):
     player_name: str
@@ -177,6 +182,39 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "victory": victory and room.mode != "blitz", # Victoire standard seulement si pas blitz
     }
 
+@app.post("/report-bug")
+async def report_bug(report: BugReportRequest):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"[{timestamp}] User: {report.player_name} | Context: {report.context} | Bug: {report.description}\n"
+    
+    # 1. Sauvegarde locale dans un fichier
+    try:
+        with open("bugs.log", "a", encoding="utf-8") as f:
+            f.write(log_entry)
+    except Exception as e:
+        print(f"Erreur écriture log: {e}")
+
+    # 2. Envoi vers Discord (si configuré)
+    if DISCORD_WEBHOOK_URL:
+        async with httpx.AsyncClient() as client:
+            try:
+                discord_payload = {
+                    "content": f"🐛 **Nouveau Rapport de Bug !**",
+                    "embeds": [{
+                        "title": f"Contexte : {report.context}",
+                        "color": 15158332, # Rouge
+                        "fields": [
+                            {"name": "Joueur", "value": report.player_name, "inline": True},
+                            {"name": "Description", "value": report.description}
+                        ],
+                        "footer": {"text": timestamp}
+                    }]
+                }
+                await client.post(DISCORD_WEBHOOK_URL, json=discord_payload)
+            except Exception as e:
+                print(f"Erreur envoi Discord: {e}")
+
+    return {"message": "Signalement reçu, merci !"}
 
 
 @app.get("/", response_class=HTMLResponse)

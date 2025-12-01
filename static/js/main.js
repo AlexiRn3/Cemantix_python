@@ -1245,6 +1245,120 @@ if (chatForm) {
         }
     });
 }
+
+function injectBugButton() {
+    // Vérifie si le bouton existe déjà pour éviter les doublons
+    if (document.getElementById('bug-trigger')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'bug-trigger';
+    btn.className = 'bug-float-btn';
+    btn.innerHTML = '🐛';
+    btn.title = "Signaler un bug";
+    btn.onclick = openBugModal;
+    
+    document.body.appendChild(btn);
+}
+
+function openBugModal() {
+    // On récupère le pseudo actuel stocké dans le localStorage (défini dans main.js)
+    const currentUser = localStorage.getItem("arcade_user_pseudo") || "Anonyme"; 
+    
+    const htmlContent = `
+        <div class="bug-form" style="text-align:left;">
+            <p style="margin-bottom:10px;">Oups ! Quelque chose ne va pas ? Décrivez le problème :</p>
+            <textarea id="bug-desc" placeholder="Ex: Le jeu plante quand je clique sur..."></textarea>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:5px;">
+                Signalé par : <strong>${currentUser}</strong>
+            </p>
+        </div>
+    `;
+
+    // On utilise ta fonction existante showModal
+    // Note : On doit modifier showModal pour accepter des boutons personnalisés si ce n'est pas déjà fait,
+    // mais ici on va injecter les boutons via le DOM après l'ouverture.
+    
+    // Import dynamique ou accès global à showModal (supposé global via window ou import)
+    // Ici on suppose que showModal est accessible globalement ou via le module UI.
+    // Si tu utilises des modules ES6, assure-toi d'avoir importé showModal.
+    
+    if (window.showModal) {
+        window.showModal("SIGNALER UN BUG", htmlContent);
+        
+        // Remplacement des boutons de la modale
+        const actionsDiv = document.getElementById('modal-actions');
+        if (actionsDiv) {
+            actionsDiv.innerHTML = `
+                <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
+                    <button class="btn btn-danger" onclick="sendBugReport('${currentUser}')">Envoyer</button>
+                    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+                </div>
+            `;
+        }
+        
+        // Focus automatique
+        setTimeout(() => document.getElementById('bug-desc').focus(), 100);
+    }
+}
+
+window.sendBugReport = async function(player) {
+    const descInput = document.getElementById('bug-desc');
+    const description = descInput.value.trim();
+    
+    if (!description) {
+        descInput.style.borderColor = "red";
+        return;
+    }
+
+    // Bouton chargement
+    const btn = document.querySelector('#modal-actions .btn-danger');
+    if(btn) {
+        btn.disabled = true;
+        btn.textContent = "Envoi...";
+    }
+
+    // Détection du contexte (Hub ou Room ID)
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get("room");
+    const context = roomId ? `Room ${roomId}` : "Hub Principal";
+
+    try {
+        const res = await fetch('/report-bug', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                player_name: player,
+                description: description,
+                context: context
+            })
+        });
+
+        if (res.ok) {
+            // Confirmation visuelle réutilisant la modale
+            const modalContent = document.getElementById('modal-content');
+            if(modalContent) modalContent.innerHTML = `<div style="color:var(--success); font-size:1.2rem; margin:20px 0;">✅ Message envoyé aux développeurs !</div>`;
+            
+            // Fermeture auto après 2s
+            setTimeout(() => {
+                if(window.closeModal) window.closeModal();
+            }, 1500);
+        } else {
+            alert("Erreur lors de l'envoi.");
+            if(window.closeModal) window.closeModal();
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erreur réseau.");
+        if(window.closeModal) window.closeModal();
+    }
+};
+
+// Injection au chargement
+document.addEventListener("DOMContentLoaded", () => {
+    injectBugButton();
+});
+
+
 window.createGame = createGame;
 window.openGameConfig = openGameConfig;
 window.openDictioConfig = openDictioConfig;
