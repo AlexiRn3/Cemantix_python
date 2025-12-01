@@ -178,8 +178,8 @@ function resize() {
     canvas.height = window.innerHeight;
     
     // Remplir immédiatement le fond pour éviter l'écran "bleu" (transparent/défaut)
-    if (ctx) {
-        ctx.fillStyle = "#161625"; 
+    if(ctx) {
+        ctx.fillStyle = "#161625"; // Fond sombre
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 }
