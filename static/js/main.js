@@ -801,26 +801,43 @@ export function initApp() {
         roomBadge.style.cursor = "pointer";
         roomBadge.title = "Copier l'ID";
         
-        // On supprime les anciens listeners pour éviter les doublons (utile en SPA)
+        // Clonage pour nettoyer les anciens écouteurs
         const newBadge = roomBadge.cloneNode(true);
         roomBadge.parentNode.replaceChild(newBadge, roomBadge);
         
         newBadge.addEventListener("click", () => {
-            const idText = document.getElementById("display-room-id").textContent;
+            const idSpan = document.getElementById("display-room-id");
+            const idText = idSpan ? idSpan.textContent : "";
+            
             if (idText && idText !== "..." && idText !== "Déconnecté") {
                 navigator.clipboard.writeText(idText).then(() => {
-                    // Feedback visuel
-                    addHistoryMessage("📋 ID copié dans le presse-papier !", 2000);
                     
-                    // Petit effet flash sur le badge
+                    // 1. Sauvegarde du contenu original (le HTML complet avec le <span>)
+                    const originalHTML = newBadge.innerHTML;
+                    
+                    // 2. Feedback Visuel : Changement de texte et style
+                    newBadge.style.transition = "all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)"; // Effet rebond
+                    newBadge.style.transform = "scale(1.1)";
                     newBadge.style.backgroundColor = "var(--success)";
                     newBadge.style.color = "white";
-                    newBadge.style.transition = "all 0.3s";
+                    newBadge.style.borderColor = "var(--success)";
+                    newBadge.textContent = "Copié !"; // Remplace tout le contenu par le message
                     
+                    // 3. Retour à la normale après 1.5 seconde
                     setTimeout(() => {
-                        newBadge.style.backgroundColor = "#f0f0f0"; // Retour couleur originale (voir CSS)
-                        newBadge.style.color = "var(--text-main)";
-                    }, 500);
+                        newBadge.style.transform = "scale(1)";
+                        newBadge.style.backgroundColor = ""; // Retour couleur CSS
+                        newBadge.style.color = "";
+                        newBadge.style.borderColor = "";
+                        newBadge.innerHTML = originalHTML; // Restaure le "ID: <span...>"
+                        
+                        // IMPORTANT : Comme on a remplacé le HTML, on a détruit l'ancien <span>
+                        // Il faut remettre à jour la référence dans 'elements' pour que les mises à jour futures marchent
+                        elements.roomInfo = document.getElementById("display-room-id");
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Erreur copie : ", err);
+                    addHistoryMessage(`ID : ${idText}`); // Fallback si le presse-papier est bloqué
                 });
             }
         });
