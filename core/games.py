@@ -404,6 +404,7 @@ class HangmanEngine(GameEngine):
     def guess(self, word: str) -> Dict[str, Any]:
         if not self.target_word or self.normalized_target is None:
             return {"exists": False, "error": "Jeu non initialisé"}
+            
         
         letter = word
         
@@ -436,6 +437,7 @@ class HangmanEngine(GameEngine):
             "temperature": (self.lives / self.max_lives) * 100, # La température devient le % de batterie
             "feedback": feedback,
             "lives": self.lives,
+            "max_lives": self.max_lives,
             "masked_word": self._get_masked_word()
         }
 
