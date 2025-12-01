@@ -256,6 +256,11 @@ function initGameConnection(roomId, playerName) {
                 // On met à jour le statut maintenant que la connexion est confirmée
                 setRoomInfo(`${roomId} • ${data.mode === 'race' ? 'Course' : 'Coop'}`); 
 
+                if (data.history && Array.isArray(data.history)) {
+                    state.entries = data.history.reverse();
+                    renderHistory();
+                }
+
                 if (data.chat_history) {
                     data.chat_history.forEach(msg => addChatMessage(msg.player_name, msg.content));
                 }
