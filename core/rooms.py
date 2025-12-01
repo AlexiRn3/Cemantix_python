@@ -155,6 +155,10 @@ class RoomManager:
         room_id = uuid.uuid4().hex[:8]
 
         engine: GameEngine
+        
+        # Bug 8: Utiliser la même seed pour le mode Daily
+        custom_seed = date.today().isoformat() if mode == "daily" else None
+
         if game_type == "definition":
             engine = DefinitionEngine(self.model)
             try:
@@ -166,7 +170,7 @@ class RoomManager:
             engine.new_game()
         elif game_type == "cemantix":
             engine = CemantixEngine(self.model)
-            engine.new_game()
+            engine.new_game(custom_seed=custom_seed) # Passe la seed si mode daily
         else:
             engine = HangmanEngine(self.model)
             engine.new_game()

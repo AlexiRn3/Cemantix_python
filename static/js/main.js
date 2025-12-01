@@ -150,7 +150,7 @@ window.openLoginModal = function() {
             <div style="display:flex; flex-direction:column; gap:15px; width:100%;">
                 <button class="btn" onclick="saveSessionPseudo()">Valider</button>
                 ${logoutBtn}
-            </div>`;
+                <button class="btn btn-outline" onclick="closeModal()">Fermer</button> </div>`;
     }
 
     titleEl.textContent = "PROFIL";
@@ -232,6 +232,8 @@ function initGameConnection(roomId, playerName) {
         document.getElementById("display-room-id").textContent = roomId;
     }
 
+    setRoomInfo(`Connexion à Room ${roomId}...`);
+
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
     const ws = new WebSocket(wsUrl);
@@ -311,6 +313,54 @@ function initGameConnection(roomId, playerName) {
     };
 
     ws.onclose = () => { setRoomInfo("Déconnecté"); };
+}
+
+function handleBlitzSuccess(data) {
+    // 1. Mise à jour de l'UI du nouveau jeu
+    initGameUI({ 
+        game_type: state.gameType, 
+        public_state: data.new_public_state 
+    });
+    // 2. Si c'est l'intrus, on réactive tous les boutons pour la nouvelle grille
+    if (state.gameType === "intruder") {
+        const grid = document.getElementById("intruder-grid");
+        if (grid) {
+            grid.querySelectorAll("button").forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove("correct", "wrong");
+            });
+        }
+        addHistoryMessage("✅ Nouveau mot !");
+    }
+}
+
+function handleDefeat(data) {
+    if (state.locked) return;
+    state.locked = true;
+    
+    showModal("GAME OVER", `
+        <div style="margin-bottom: 20px;">
+            La batterie est à plat ! 💀<br>
+            Le mot à trouver était : <strong style="color:var(--accent); font-size:1.5rem;">${data.target_reveal.toUpperCase()}</strong>.
+        </div>
+    `);
+
+    // On utilise la logique de victoire pour afficher les boutons Rejouer/Hub
+    const actionsDiv = document.getElementById('modal-actions');
+    if (actionsDiv) {
+        actionsDiv.innerHTML = `
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="btn-replay" class="btn">Rejouer la partie</button>
+                <button id="btn-hub" class="btn btn-outline">Retour au Hub</button>
+            </div>
+        `;
+        document.getElementById('btn-replay').onclick = function() {
+            sendResetRequest(this);
+        };
+        document.getElementById('btn-hub').onclick = function() {
+            window.location.href = "/";
+        };
+    }
 }
 
 function initGameUI(data) {
@@ -588,7 +638,9 @@ if (elements.form) {
         const word = input.value.trim();
         
         if (!word) {
-            showModal("Hey !", "Il faut écrire un mot avant d'essayer.");
+            addHistoryMessage("⚠️ Il faut écrire un mot avant d'essayer.", 2000); 
+            elements.input.classList.add("error-shake");
+            setTimeout(() => elements.input.classList.remove("error-shake"), 500);
             return;
         }
 
@@ -1029,6 +1081,35 @@ function toggleDurationDisplay() {
     }
 }
 
+function updateHangmanUI(data) {
+    // 1. Mise à jour du mot et de la batterie
+    renderHangmanUI(data); 
+    
+    // 2. Mise à jour de l'état du clavier (couleur)
+    const letter = data.word.toUpperCase();
+    const btn = document.getElementById(`key-${letter}`);
+    
+    if (btn) {
+        btn.disabled = true; // Désactive la touche
+        
+        // La "similarity" est 1.0 si la lettre est dans le mot, 0.0 sinon (voir core/games.py)
+        if (data.similarity >= 1.0) { 
+             btn.classList.remove("wrong");
+             btn.classList.add("correct");
+             addHistoryMessage("✅ Bonne lettre !", 1000); 
+        } else {
+             btn.classList.add("wrong");
+             addHistoryMessage("❌ Mauvaise lettre !", 1000); 
+        }
+    }
+    
+    // 3. Gestion de la défaite (si la vie est à 0)
+    if (data.defeat) {
+        handleDefeat(data);
+    } 
+    // La victoire est gérée via le message 'scoreboard_update' standard.
+}
+
 // 4. Lancer la partie avec les paramètres choisis
 function submitGameConfig() {
     // Récupération des valeurs
@@ -1075,6 +1156,11 @@ window.createGame = async function(type, mode = 'coop', duration = 0) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ player_name: name, game_type: type, mode: mode, duration: duration })
     });
+    if (!res.ok) {
+        const errorData = await res.json();
+        showModal("Erreur de création de partie", errorData.message || "Erreur inconnue lors de la création de la room.");
+        return;
+    }
     const data = await res.json();
     window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(name)}`;
 };
