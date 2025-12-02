@@ -153,7 +153,6 @@ export function initGameConnection(roomId, playerName) {
                 // Défaite
                 if (data.defeat) handleDefeat(data);
                 break;
-
             case "scoreboard_update":
                 renderScoreboard(data.scoreboard || []);
                 state.roomLocked = data.locked;

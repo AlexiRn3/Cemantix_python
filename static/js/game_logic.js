@@ -266,7 +266,7 @@ export function handleDefeat(data) {
     showModal("GAME OVER", `
         <div style="margin-bottom: 20px;">
             La batterie est à plat ! 💀<br>
-            Le mot à trouver était : <strong style="color:var(--accent); font-size:1.5rem;">${data.target_reveal.toUpperCase()}</strong>.
+            Le mot à trouver était : <strong style="color:var(--accent); font-size:1.5rem;">${wordToReveal}</strong>.
         </div>
     `);
 
