@@ -85,6 +85,8 @@ class RoomState:
     reset_votes: Set[str] = field(default_factory=set)
     chat_history: List[ChatMessage] = field(default_factory=list)
 
+    active_players: Set[str] = field(default_factory=set)
+
     def add_chat_message(self, player_name: str, content: str):
         self.chat_history.append(ChatMessage(player_name, content))
         # On garde seulement les 50 derniers messages pour éviter de saturer la mémoire
