@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 from typing import Dict, List, Any, Optional
 import time
-from datetime import date, datetime
+from datetime import date
 import httpx
 import os
 
