@@ -80,3 +80,5 @@ window.toggleChat = function() {
         }
     }
 };
+
+window.initChat = initChat;
