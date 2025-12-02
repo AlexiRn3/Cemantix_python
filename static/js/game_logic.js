@@ -141,7 +141,7 @@ export function updateMusicContext(gameType, mode, duration) {
     }
 }
 
-async function submitIntruderGuess(word, buttonElement) {
+export async function submitIntruderGuess(word, buttonElement) {
     if (state.locked || !state.currentRoomId) return;
     buttonElement.disabled = true;
 
@@ -241,7 +241,7 @@ export function updateHangmanUI(data) {
     if (data.defeat) handleDefeat(data);
 }
 
-async function submitHangmanGuess(letter, btnElement) {
+export async function submitHangmanGuess(letter, btnElement) {
     if (state.locked || !state.currentRoomId) return;
     btnElement.disabled = true;
 

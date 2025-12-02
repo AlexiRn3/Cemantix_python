@@ -62,7 +62,7 @@ export function closeConfigModal() {
     document.getElementById('config-modal').classList.remove('active');
 }
 
-function openBugModal() {
+export function openBugModal() {
     const htmlContent = `
         <div class="bug-form" style="text-align:left;">
             <p style="margin-bottom:10px;">Oups ! Quelque chose ne va pas ? Décrivez le problème :</p>
@@ -101,7 +101,7 @@ function openBugModal() {
     }, 100);
 }
 
-window.sendBugReport = async function(player) {
+export async function sendBugReport (player) {
     const descInput = document.getElementById('bug-desc');
     const description = descInput.value.trim();
     
@@ -153,7 +153,7 @@ window.sendBugReport = async function(player) {
     }
 };
 
-function injectBugButton() {
+export function injectBugButton() {
     // Vérifie si le bouton existe déjà pour éviter les doublons
     if (document.getElementById('bug-trigger')) return;
 

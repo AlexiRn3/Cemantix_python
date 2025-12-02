@@ -79,7 +79,7 @@ export function openDictioConfig() {
         toggleDurationDisplay();
     }
 }
-function launchDictio() {
+export function launchDictio() {
     const modeSelect = document.getElementById('dictio-mode').value;
     let mode = 'coop'; // Mode par défaut
     let duration = 0;
