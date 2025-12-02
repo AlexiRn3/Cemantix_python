@@ -30,16 +30,32 @@ export function startTimer(endTime) {
         if (diff <= 0) {
             clearInterval(interval);
             if(timerEl) timerEl.textContent = "00:00";
-            
-            const scoreEl = document.getElementById('score-display');
-            const score = scoreEl ? scoreEl.textContent : "0";
-            
-            showModal("TEMPS ÉCOULÉ", `
-                <div style="margin-bottom: 20px;">
-                    C'est terminé !<br>
-                    Score final : <strong style="color:var(--success); font-size:1.5rem;">${score}</strong> mots.
-                </div>
-            `);
+            if (state.gameType === "duel") {
+                // On récupère les données du scoreboard actuel (state.entries ou via le DOM)
+                // Le scoreboard est déjà trié par best_similarity dans rendering.js / renderScoreboard
+                // On va tricher un peu et regarder le premier élément du DOM scoreboard s'il existe,
+                // ou attendre que le serveur envoie un event "victory" (plus propre, mais demande modif backend).
+                
+                // Méthode simple : On demande au serveur de reset ou on affiche le leader actuel.
+                // Pour l'instant, affichons simplement un message générique invitant à regarder le tableau.
+                
+                showModal("DUEL TERMINÉ ⚔️", `
+                    <div style="margin-bottom: 20px;">
+                        Le temps est écoulé !<br>
+                        Regardez le tableau des scores pour voir qui a la meilleure proximité.
+                    </div>
+                `);
+            } else {
+                const scoreEl = document.getElementById('score-display');
+                const score = scoreEl ? scoreEl.textContent : "0";
+                
+                showModal("TEMPS ÉCOULÉ", `
+                    <div style="margin-bottom: 20px;">
+                        C'est terminé !<br>
+                        Score final : <strong style="color:var(--success); font-size:1.5rem;">${score}</strong> mots.
+                    </div>
+                `);
+            }
 
             const actionsDiv = document.getElementById('modal-actions');
             if(actionsDiv) {
@@ -67,7 +83,7 @@ export function startTimer(endTime) {
 
 export function initGameUI(data) {
     state.gameType = data.game_type;
-    const titles = { "cemantix": "Cémantix", "definition": "Dictionnario", "intruder": "L'Intrus", "hangman": "Pendu" };
+    const titles = { "cemantix": "Cémantix", "definition": "Dictionnario", "intruder": "L'Intrus", "hangman": "Pendu", "duel": "Duel de Concepts" };
     const titleEl = document.getElementById("game-title");
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
 
@@ -106,6 +122,15 @@ export function initGameUI(data) {
             document.getElementById("definition-text").textContent = `"${data.public_state.hint}"`;
             document.getElementById("hint-text").textContent = `Le mot fait ${data.public_state.word_length} lettres.`;
         }
+    } else if (data.game_type === "duel") {
+        const box = document.getElementById("game-instruction");
+        if(box) {
+            box.style.display = "block";
+            document.getElementById("definition-text").innerHTML = `Thème : <strong style="color:var(--accent); text-transform:uppercase;">${data.public_state.theme}</strong>`;
+            document.getElementById("hint-text").textContent = "Trouvez le mot le plus proche !";
+        }
+                const form = document.getElementById("guess-form");
+        if(form) form.style.display = "flex";
     } else {
         const legend = document.getElementById("legend-panel");
         if(legend) {

@@ -36,6 +36,54 @@ class GameEngine(ABC):
         """Passe au mot suivant (utilisé pour le mode Blitz)"""
         pass
 
+
+class DuelEngine(GameEngine):
+    def __init__(self, model):
+        self.model = model
+        self.theme_word = None
+
+    def new_game(self):
+        # On choisit un mot fréquent et simple comme thème (comme pour Intruder)
+        vocab_keys = list(self.model.key_to_index.keys())
+        while True:
+            candidate = random.choice(vocab_keys)
+            # On filtre: mot alphabétique, taille correcte, fréquence élevée
+            if (4 <= len(candidate) <= 10 and candidate.isalpha() 
+                and self.model.get_vecattr(candidate, "count") > 100000):
+                self.theme_word = candidate
+                break
+        
+        print(f"[DUEL] Thème choisi : {self.theme_word}")
+
+    def guess(self, word: str) -> Dict[str, Any]:
+        if not self.theme_word:
+            return {"exists": False, "error": "Jeu non initialisé"}
+            
+        if word not in self.model.key_to_index:
+            return {"exists": False, "error": "Mot inconnu"}
+
+        # On calcule la similarité avec le THÈME
+        sim = float(self.model.similarity(word, self.theme_word))
+        
+        # Note : On ne cache pas le score ici, car le but est de faire le meilleur score
+        return {
+            "exists": True,
+            "similarity": sim,
+            "temperature": float(round(sim * 100, 2)),
+            "is_correct": False, # Pas de victoire immédiate en duel, c'est le temps qui décide
+            "feedback": f"{sim:.4f}" # On renvoie le score brut comme feedback visuel
+        }
+
+    def get_public_state(self) -> Dict[str, Any]:
+        # En Duel, le thème est PUBLIC dès le début
+        return {
+            "game_type": "duel",
+            "theme": self.theme_word
+        }
+    
+    def next_word(self):
+        self.new_game()
+
 # --- Cemantix Implementation ---
 class CemantixEngine(GameEngine):
     def __init__(self, model):

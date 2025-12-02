@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Dict, List, Optional, Any, Set
 
-from core.games import CemantixEngine, DefinitionEngine, GameEngine, IntruderEngine, HangmanEngine
+from core.games import DuelEngine, CemantixEngine, DefinitionEngine, GameEngine, IntruderEngine, HangmanEngine
 
 @dataclass
 class ChatMessage:
@@ -170,6 +170,9 @@ class RoomManager:
                 raise RuntimeError("Impossible d'initialiser le jeu de définition") from exc
         elif game_type == "intruder":
             engine = IntruderEngine(self.model)
+            engine.new_game()
+        elif game_type == "duel":
+            engine = DuelEngine(self.model)
             engine.new_game()
         elif game_type == "cemantix":
             engine = CemantixEngine(self.model)

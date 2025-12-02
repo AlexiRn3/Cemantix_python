@@ -46,7 +46,17 @@ export function openGameConfig(type) {
 
     if(modal) modal.classList.add('active');
 
-    if (type === 'intruder') {
+    if (type === 'duel') {
+        title.textContent = "Duel de Concepts ⚔️";
+        modeGroup.style.display = 'none';
+        modeSelect.value = 'blitz'; 
+        
+        durationGroup.style.display = 'block';
+        const durationSelect = document.getElementById('config-duration');
+        if(durationSelect) durationSelect.value = "60"; 
+
+        desc.textContent = "Le serveur donne un thème. Vous avez 1 minute pour trouver le mot le plus proche sémantiquement !";
+    } else if (type === 'intruder') {
         if(title) title.textContent = "L'Intrus : Contre la montre";
         if(modeGroup) modeGroup.style.display = 'none'; 
         if(modeSelect) modeSelect.value = 'blitz';
