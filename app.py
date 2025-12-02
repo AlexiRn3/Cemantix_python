@@ -3,6 +3,7 @@ import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
+from starlette.responses import FileResponse
 from starlette.staticfiles import StaticFiles
 from typing import Dict, List, Any, Optional
 import time
@@ -17,6 +18,11 @@ from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
 
 app = FastAPI()
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("favicon.ico")
 
 # Chargement du modèle avec gestion d'erreur si le fichier est absent
 try:
