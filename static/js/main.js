@@ -126,6 +126,24 @@ export function initApp() {
     if (window.location.pathname === "/" || window.location.pathname === "/index.html") {
         if (window.musicManager) window.musicManager.setContext({ gameType: 'hub' });
 
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error') === 'room_not_found') {
+            const missingRoom = urlParams.get('room') || 'Inconnue';
+            
+            // 1. Nettoyer l'URL proprement (supprime les paramètres sans recharger)
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            
+            // 2. Afficher la modale (avec un léger délai pour être sûr que l'UI est prête)
+            setTimeout(() => {
+                showModal("Room Introuvable", `
+                    La room <strong style="color:var(--accent)">${missingRoom}</strong> n'existe pas ou la partie est terminée.
+                    <br><br>
+                    <small style="color:var(--text-muted)">Vérifiez le code ou créez une nouvelle partie !</small>
+                `);
+            }, 500);
+        }
+
         const nameInput = document.getElementById('player-name');
         if (nameInput && state.currentUser) nameInput.value = state.currentUser;
 
@@ -190,9 +208,6 @@ export function initApp() {
                 .then(response => {
                     if (response.status === 404) {
                         window.location.href = `/?error=room_not_found&room=${roomId}`;
-                        showModal("Room introuvable", "Cet ID de room n'existe pas ou la partie est terminée.");
-                         joinBtn.disabled = false;
-                        joinBtn.textContent = "Rejoindre";
                     } else {
                         initGameConnection(roomId, playerName);
                     }
