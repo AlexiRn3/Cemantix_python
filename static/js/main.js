@@ -2,7 +2,7 @@ import { elements } from "./dom.js";
 import { state } from "./state.js";
 import { addHistoryMessage, setRoomInfo, showModal, closeModal } from "./ui.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti } from "./rendering.js";
-
+import { initChat, addChatMessage } from "./chat_ui.js";
 // --- GESTION DE SESSION ---
 const STORAGE_KEY = "arcade_user_pseudo";
 const DAILY_WIN_KEY = "arcade_daily_win";
@@ -66,38 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initialisation du Chat (Si présent)
     initChat();
 });
-
-function initChat() {
-    const chatForm = document.getElementById("chat-form");
-    
-    // Toggle Button
-    window.toggleChat = function() {
-        const chat = document.getElementById("chat-container");
-        const icon = document.getElementById("chat-toggle-icon");
-        if(chat) {
-            chat.classList.toggle("collapsed");
-            if(icon) icon.textContent = chat.classList.contains("collapsed") ? "▲" : "▼";
-        }
-    };
-
-    // Submit Listener (CORRECTION DU RELOAD)
-    if (chatForm) {
-        chatForm.addEventListener("submit", function(e) {
-            e.preventDefault(); // EMPÊCHE LE RECHARGEMENT
-            
-            const input = document.getElementById("chat-input");
-            const text = input.value.trim();
-            
-            if (text && state.websocket && state.websocket.readyState === WebSocket.OPEN) {
-                state.websocket.send(JSON.stringify({
-                    type: "chat",
-                    content: text
-                }));
-                input.value = "";
-            }
-        });
-    }
-}
 
 function updateSessionUI() {
     const display = document.getElementById("profile-name-display");
@@ -439,9 +407,6 @@ function renderIntruderGrid(options) {
         grid.appendChild(btn);
     });
 }
-
-// 3. Fonction d'envoi du guess (similaire au submit du formulaire)
-// Dans static/js/main.js
 
 async function submitIntruderGuess(word, buttonElement) {
     if (state.locked) return;
@@ -1195,56 +1160,6 @@ document.getElementById('btn-join').onclick = () => {
     if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");
     window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
 };
-
-// Ajoutez cet export pour qu'il soit utilisable dans websocket.js
-export function addChatMessage(player, content) {
-    const container = document.getElementById("chat-messages");
-    if (!container) return;
-
-    const div = document.createElement("div");
-    // On compare avec le currentUser stocké
-    const isMe = player === currentUser; 
-    
-    div.className = `chat-msg ${isMe ? 'me' : 'others'}`;
-    div.innerHTML = `<strong>${player}</strong> ${content}`;
-    
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight; // Scroll auto vers le bas
-}
-
-// Fonction pour ouvrir/fermer le chat
-window.toggleChat = function() {
-    const chat = document.getElementById("chat-container");
-    const icon = document.getElementById("chat-toggle-icon");
-    
-    if (chat) {
-        chat.classList.toggle("collapsed");
-        // Change la flèche selon l'état
-        if (icon) {
-            icon.textContent = chat.classList.contains("collapsed") ? "▲" : "▼";
-        }
-    }
-};
-
-// Gestionnaire d'envoi du chat
-const chatForm = document.getElementById("chat-form");
-if (chatForm) {
-    chatForm.addEventListener("submit", function(e) {
-        e.preventDefault(); // <--- C'EST ICI LA CLÉ : Empêche le rechargement de la page
-        
-        const input = document.getElementById("chat-input");
-        const text = input.value.trim();
-        
-        // On vérifie que le websocket est ouvert et qu'il y a du texte
-        if (text && state.websocket && state.websocket.readyState === WebSocket.OPEN) {
-            state.websocket.send(JSON.stringify({
-                type: "chat",
-                content: text
-            }));
-            input.value = ""; // Vide le champ
-        }
-    });
-}
 
 function injectBugButton() {
     // Vérifie si le bouton existe déjà pour éviter les doublons
