@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { elements } from "./dom.js";
 
-function initChat() {
+export function initChat() {
     const chatForm = document.getElementById("chat-form");
     
     window.toggleChat = function() {
@@ -80,5 +80,3 @@ window.toggleChat = function() {
         }
     }
 };
-
-window.initChat = initChat;
