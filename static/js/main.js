@@ -169,22 +169,30 @@ export function initApp() {
                 joinBtn.textContent = "Vérification...";
 
                 try {
-                    const res = await fetch(`/rooms/${roomId}/check`);
-                    const name = await fetch(`/rooms/${roomId}/check_pseudo`);
-                    
-                    if (res.ok && name.ok) {
-                        window.location.href = `/game?room=${roomId}&player=${encodeURIComponent(name)}`;
-                    } else if (name.ok){
-                        const err = await res.json();
+                    // 1. Check if the room exists
+                    const resRoom = await fetch(`/rooms/${roomId}/check`);
+                    if (!resRoom.ok) {
+                        // If 404 or other error
                         showModal("Room introuvable", "Cet ID de room n'existe pas ou la partie est terminée.");
-                         joinBtn.disabled = false;
+                        joinBtn.disabled = false;
                         joinBtn.textContent = "Rejoindre";
+                        return;
+                    }
+
+                    // 2. Check if the pseudo is available (FIX: Added query param)
+                    const resPseudo = await fetch(`/rooms/${roomId}/check_pseudo?player_name=${encodeURIComponent(name)}`);
+                    
+                    if (resPseudo.ok) {
+                        // Everything is good, we go!
+                        window.location.href = `/game?room=${roomId}&player=${encodeURIComponent(name)}`;
                     } else {
-                        const err = await name.json();
-                        showModal("Pseudo déjà utilisé", err.message || "Le pseudo est déjà utilisé dans cette partie.");
+                        // If 409 (Conflict) or 422
+                        const err = await resPseudo.json();
+                        showModal("Impossible de rejoindre", err.message || "Ce pseudo est déjà pris dans cette partie.");
                         joinBtn.disabled = false;
                         joinBtn.textContent = "Rejoindre";
                     }
+
                 } catch (e) {
                     console.error(e);
                     showModal("Erreur Réseau", "Impossible de contacter le serveur.");
@@ -193,7 +201,6 @@ export function initApp() {
                 }
             };
         }
-    }
 
     // --- LOGIQUE SPECIFIQUE : JEU ---
     if (window.location.pathname.includes("/game")) {
