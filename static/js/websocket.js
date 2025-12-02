@@ -104,14 +104,10 @@ export function initGameConnection(roomId, playerName) {
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
-        console.log("Reçu WS:", data);
-
         if (data.error) {
             showModal("Erreur", data.message || "Erreur inconnue");
             return;
         }
-
-        console.log("Reçu WS:", data);
 
         switch (data.type) {
             case "state_sync":
@@ -152,12 +148,9 @@ export function initGameConnection(roomId, playerName) {
                     const scoreEl = document.getElementById('score-display');
                     if (scoreEl) scoreEl.textContent = data.team_score;
                 }
-                // Mise à jour Pendu
                 if (data.game_type === "hangman") updateHangmanUI(data);
-
                 console.log("Check Défaite ->", data.defeat);
-                // Défaite
-                if (data.defeat) handleDefeat(data); console.log("Appel de handleDefeat !");
+                if (data.defeat) handleDefeat(data);
                 break;
             case "scoreboard_update":
                 renderScoreboard(data.scoreboard || []);
@@ -165,7 +158,7 @@ export function initGameConnection(roomId, playerName) {
                 if (data.victory && data.winner) handleVictory(data.winner, data.scoreboard);
                 break;
 
-            case "victory": // Fallback
+            case "victory":
                 handleVictory(data.winner, state.scoreboard || []);
                 break;
 
