@@ -33,6 +33,25 @@ export async function submitGameConfig() {
     await createGame(currentConfigType, mode, duration);
 }
 
+async function joinRandomDuel() {
+    const pseudo = localStorage.getItem("player_name");
+    try {
+        const response = await fetch("/rooms/join_random", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ player_name: pseudo })
+        });
+        const data = await response.json();
+        if (data.room_id) {
+            window.location.hash = `#room=${data.room_id}`;
+            closeConfigModal();
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erreur lors de la recherche d'adversaire.");
+    }
+}
+
 export function openGameConfig(type) {
     if (!verifierPseudo()) return;
     
@@ -47,15 +66,44 @@ export function openGameConfig(type) {
     if(modal) modal.classList.add('active');
 
     if (type === 'duel') {
-        title.textContent = "Duel de Concepts ⚔️";
-        modeGroup.style.display = 'none';
-        modeSelect.value = 'blitz'; 
+        // On remplace temporairement le contenu de la modale pour afficher les choix
+        // Sauvegarde du contenu original si besoin, ou on le reconstruit plus tard
+        const originalContent = contentDiv.innerHTML;
         
-        durationGroup.style.display = 'block';
-        const durationSelect = document.getElementById('config-duration');
-        if(durationSelect) durationSelect.value = "60"; 
+        contentDiv.innerHTML = `
+            <h2>⚔️ Duel de Concepts</h2>
+            <p style="text-align:center; margin-bottom: 20px;">
+                Affrontez un autre joueur en temps réel.<br>
+                Trouvez le mot le plus proche du thème en 60 secondes.
+            </p>
+            
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button id="btn-invite" class="btn" style="background: #a29bfe;">🤝 Inviter un ami</button>
+                <button id="btn-random" class="btn" style="background: #ff7675;">🎲 Adversaire Aléatoire</button>
+            </div>
+            <button class="btn-close" style="margin-top:20px;">Annuler</button>
+        `;
 
-        desc.textContent = "Le serveur donne un thème. Vous avez 1 minute pour trouver le mot le plus proche sémantiquement !";
+        // Gestionnaire pour "Inviter un ami" (Créer une salle privée)
+        contentDiv.querySelector('#btn-invite').onclick = () => {
+            // On lance la création classique, mais on force les params
+            closeConfigModal();
+            // On restaure le contenu pour la prochaine fois (optionnel si tu recharges la page)
+             setTimeout(() => contentDiv.innerHTML = originalContent, 500);
+            createGame('duel', 'blitz', 60);
+        };
+
+        // Gestionnaire pour "Aléatoire"
+        contentDiv.querySelector('#btn-random').onclick = () => {
+            joinRandomDuel();
+             setTimeout(() => contentDiv.innerHTML = originalContent, 500);
+        };
+
+        contentDiv.querySelector('.btn-close').onclick = () => {
+            closeConfigModal();
+            setTimeout(() => contentDiv.innerHTML = originalContent, 500);
+        };
+        return;
     } else if (type === 'intruder') {
         if(title) title.textContent = "L'Intrus : Contre la montre";
         if(modeGroup) modeGroup.style.display = 'none'; 

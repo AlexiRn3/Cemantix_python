@@ -13,6 +13,7 @@ import os
 
 # Configurez l'URL du webhook Discord ici ou via une variable d'environnement
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", None)
+waiting_duel_room_id: Optional[str] = None
 
 from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
@@ -192,6 +193,47 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "victory": victory and room.mode != "blitz", # Victoire standard seulement si pas blitz
     }
 
+
+@app.post("/rooms/join_random")
+def join_random_duel(payload: CreateRoomRequest):
+    global waiting_duel_room_id
+    
+    # 1. Vérifier si une salle attend un joueur
+    if waiting_duel_room_id:
+        room = room_manager.get_room(waiting_duel_room_id)
+        # On vérifie si la room est valide et n'est pas pleine (juste au cas où)
+        if room and len(room.players) < 2:
+            # On retourne cette room et on vide la file d'attente
+            joined_room_id = waiting_duel_room_id
+            waiting_duel_room_id = None
+            return {
+                "room_id": joined_room_id,
+                "mode": room.mode,
+                "game_type": room.game_type,
+                "is_new": False
+            }
+        else:
+            # La room n'est plus valide, on reset
+            waiting_duel_room_id = None
+
+    # 2. Sinon, on crée une nouvelle salle
+    # On force les paramètres du duel
+    try:
+        room = room_manager.create_room("duel", "blitz", payload.player_name)
+        room.duration = 60 # Durée fixe pour le duel
+        # NOTE : On ne définit pas end_time ici, on attend le 2ème joueur
+        
+        waiting_duel_room_id = room.room_id
+        
+        return {
+            "room_id": room.room_id,
+            "mode": room.mode,
+            "game_type": room.game_type,
+            "is_new": True
+        }
+    except Exception as exc:
+        return JSONResponse(status_code=503, content={"message": "Erreur création duel", "detail": str(exc)})
+
 @app.post("/report-bug")
 async def report_bug(report: BugReportRequest):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -266,7 +308,8 @@ def create_room(payload: CreateRoomRequest):
 
     if payload.mode == "blitz" and payload.duration > 0:
         room.duration = payload.duration
-        room.end_time = time.time() + payload.duration
+        if payload.game_type != "duel":
+            room.end_time = time.time() + payload.duration
     
     return {
         "room_id": room.room_id, 
@@ -394,10 +437,23 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         await websocket.send_json({"error": "room_not_found", "message": "Room inconnue"})
         await websocket.close()
         return
+    
+    if room.game_type == "duel":
+        if len(room.active_players) >= 2:
+            await websocket.accept()
+            await websocket.send_json({"error": "room_full", "message": "Ce duel est complet (2 joueurs max)."})
+            await websocket.close()
+            return
 
 
     await connections.connect(room_id, websocket)
     room.add_player(player_name)
+    room.active_players.add(player_name)
+
+    just_started = False
+    if room.game_type == "duel" and len(room.players) == 2 and room.end_time == 0:
+        room.end_time = time.time() + room.duration
+        just_started = True
     
     # Récupération de l'état initial spécifique au jeu (ex: définition)
     public_state = room.engine.get_public_state()
@@ -444,6 +500,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 "winner": None,
             },
         )
+
+        if just_started:
+            await connections.broadcast(
+                room_id,
+                {
+                    "type": "game_start", # Nouveau type de message
+                    "end_time": room.end_time,
+                    "message": "Le duel commence !"
+                }
+            )
 
         while True:
             data = await websocket.receive_json()
