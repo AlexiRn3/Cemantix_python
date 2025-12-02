@@ -1,6 +1,6 @@
 import { state } from "./state.js";
 import { elements } from "./dom.js";
-import currentUser from "main.js";
+import currentUser from "./main.js";
 
 export function initChat() {
     const chatForm = document.getElementById("chat-form");
