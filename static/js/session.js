@@ -1,5 +1,6 @@
 import { openLoginModal } from "./modal.js";
 import { state } from "./state.js";
+import { checkDailyVictory } from "./victory.js";
 
 export const STORAGE_KEY = "arcade_user_pseudo";
 
