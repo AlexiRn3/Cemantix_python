@@ -14,6 +14,7 @@ export function checkDailyVictory() {
     dailyBtn.textContent = "Relever le défi";
     dailyBtn.classList.remove("btn-disabled");
     dailyBtn.onclick = () => createGame('cemantix', 'daily');
+    dailyBtn.disabled = false;
 
     // Si pas d'utilisateur connecté, on ne peut pas vérifier sa victoire spécifique
     if (!state.currentUser) return;
@@ -25,6 +26,7 @@ export function checkDailyVictory() {
     if (localStorage.getItem(userWinKey)) {
         dailyBtn.textContent = "Défi du jour accompli ✅";
         dailyBtn.classList.add("btn-disabled"); // Grise le bouton
+        dailyBtn.disabled = true;
         dailyBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
