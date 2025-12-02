@@ -260,6 +260,8 @@ export async function submitHangmanGuess(letter, btnElement) {
 export function handleDefeat(data) {
     if (state.locked) return;
     state.locked = true;
+
+    const wordToReveal = data.target_reveal ? data.target_reveal.toUpperCase() : "???";
     
     showModal("GAME OVER", `
         <div style="margin-bottom: 20px;">
