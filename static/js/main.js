@@ -1280,7 +1280,6 @@ function openBugModal() {
     // 2. Remplacement des boutons
     const actionsDiv = document.getElementById('modal-actions');
     if (actionsDiv) {
-        // NOTE : On a retiré onclick="sendBugReport..." et ajouté id="btn-submit-bug"
         actionsDiv.innerHTML = `
             <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
                 <button id="btn-submit-bug" class="btn btn-danger">Envoyer</button>
