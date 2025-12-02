@@ -89,7 +89,7 @@ export function initGameConnection(roomId, playerName) {
 
     setRoomInfo(`Connexion à la Room ${roomId}...`);
 
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const protocol = window.location.protocol === "https:";
     const wsUrl = `${protocol}://${window.location.host}/rooms/${roomId}/ws?player_name=${encodeURIComponent(playerName)}`;
 
     if (state.websocket) {
