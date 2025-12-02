@@ -6,8 +6,12 @@ from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 from typing import Dict, List, Any, Optional
 import time
-from datetime import date
+from datetime import date, datetime
 import httpx
+import os
+
+# Configurez l'URL du webhook Discord ici ou via une variable d'environnement
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", None)
 
 from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
