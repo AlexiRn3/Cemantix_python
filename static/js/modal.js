@@ -59,26 +59,6 @@ window.openLoginModal = function() {
     }
 };
 
-window.saveSessionPseudo = function() {
-    const input = document.getElementById('login-pseudo');
-    const newName = input.value.trim();
-    if (newName) {
-        currentUser = newName;
-        localStorage.setItem(STORAGE_KEY, currentUser);
-        updateSessionUI();
-        const hubInput = document.getElementById('player-name');
-        if (hubInput) hubInput.value = currentUser;
-        
-        // AJOUT ICI : On vérifie si ce nouveau pseudo a déjà gagné aujourd'hui
-        checkDailyVictory(); 
-        
-        closeModal();
-    } else {
-        input.classList.add('error-shake');
-        setTimeout(() => input.classList.remove('error-shake'), 500);
-    }
-};
-
 
 export function closeConfigModal() {
     document.getElementById('config-modal').classList.remove('active');
