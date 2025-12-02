@@ -82,6 +82,7 @@ export function openWebsocket(playerName) {
 }
 
 export function initGameConnection(roomId, playerName) {
+    state.currentRoomId = roomId;
     if(document.getElementById("display-room-id")) {
         document.getElementById("display-room-id").textContent = roomId;
     }
