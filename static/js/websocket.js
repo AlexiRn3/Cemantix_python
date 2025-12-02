@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti, updateRoomStatus } from "./rendering.js";
 import { addHistoryMessage, setRoomInfo } from "./ui.js";
-import { addChatMessage } from "./main.js";
+import { addChatMessage } from "./chat_ui.js";
 
 export function openWebsocket(playerName) {
     if (!state.currentRoomId) return;
