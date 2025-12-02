@@ -24,6 +24,12 @@ if webhook_url:
 else:
     print("❌ Webhook NON trouvé. Vérifiez le fichier .env")
 
+ADMIN_LOG_PASSWORD = os.environ.get("ADMIN_LOG_PASSWORD")
+if ADMIN_LOG_PASSWORD:
+    print("🔒 Mot de passe admin chargé pour la consultation des logs.")
+else:
+    print("⚠️ Aucun mot de passe admin configuré. La page des logs sera indisponible.")
+
 # Configurez l'URL du webhook Discord ici ou via une variable d'environnement
 DISCORD_WEBHOOK_URL = webhook_url
 waiting_duel_room_id: Optional[str] = None
@@ -32,6 +38,8 @@ from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
 
 app = FastAPI()
+
+LOG_FILE_PATH = Path("bugs.log")
 
 
 @app.get("/favicon.ico")
@@ -70,6 +78,10 @@ class GuessRequest(BaseModel):
 
 class ResetRequest(BaseModel):
     player_name: str
+
+
+class AdminLogRequest(BaseModel):
+    password: str
 
 class RoomConnectionManager:
     def __init__(self):
@@ -253,7 +265,7 @@ async def report_bug(report: BugReportRequest):
     log_entry = f"[{timestamp}] User: {report.player_name} | Context: {report.context} | Bug: {report.description}\n"
 
     try:
-        with open("bugs.log", "a", encoding="utf-8") as f:
+        with LOG_FILE_PATH.open("a", encoding="utf-8") as f:
             f.write(log_entry)
     except Exception as e:
         print(f"Erreur écriture log: {e}")
@@ -283,6 +295,36 @@ async def report_bug(report: BugReportRequest):
                 print(f"Erreur envoi Discord: {e}")
 
     return {"message": "Signalement reçu, merci !"}
+
+
+def _get_log_content() -> str:
+    if not LOG_FILE_PATH.exists():
+        return "Aucun log disponible pour le moment."
+
+    lines = LOG_FILE_PATH.read_text(encoding="utf-8").splitlines()
+    # On limite l'affichage aux 200 dernières lignes pour éviter les fichiers trop volumineux.
+    tail = lines[-200:] if len(lines) > 200 else lines
+    return "\n".join(tail)
+
+
+@app.post("/admin/logs")
+def get_admin_logs(payload: AdminLogRequest):
+    if not ADMIN_LOG_PASSWORD:
+        return JSONResponse(status_code=503, content={"message": "Mot de passe admin non configuré sur le serveur."})
+
+    if payload.password != ADMIN_LOG_PASSWORD:
+        return JSONResponse(status_code=401, content={"message": "Accès refusé : mot de passe incorrect."})
+
+    return {"logs": _get_log_content()}
+
+
+@app.get("/logs", response_class=HTMLResponse)
+def logs_page():
+    log_page = Path("static/logs.html")
+    if not log_page.exists():
+        return JSONResponse(status_code=404, content={"message": "Page des logs manquante."})
+
+    return log_page.read_text(encoding="utf-8")
 
 @app.get("/rooms/{room_id}/check")
 def check_room_exists(room_id: str):
