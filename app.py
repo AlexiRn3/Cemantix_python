@@ -226,6 +226,12 @@ async def report_bug(report: BugReportRequest):
 
     return {"message": "Signalement reçu, merci !"}
 
+@app.get("/rooms/{room_id}/check")
+def check_room_exists(room_id: str):
+    room = room_manager.get_room(room_id)
+    if room:
+        return {"exists": True, "mode": room.mode}
+    return JSONResponse(status_code=404, content={"exists": False, "message": "Room introuvable"})
 
 @app.get("/", response_class=HTMLResponse)
 def hub_page():

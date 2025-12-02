@@ -133,14 +133,40 @@ export function initApp() {
 
         const joinBtn = document.getElementById('btn-join');
         if (joinBtn) {
-            joinBtn.onclick = () => {
+            joinBtn.onclick = async () => {
                 if (!verifierPseudo()) return;
-                const pInput = document.getElementById('player-name');
-                let name = pInput ? pInput.value : state.currentUser;
-                if(!name && state.currentUser) name = state.currentUser;
-                const room = document.getElementById('room-id').value;
-                if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");
-                window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
+                
+                const nameInput = document.getElementById('player-name');
+                let name = nameInput ? nameInput.value : state.currentUser;
+                if (!name && state.currentUser) name = state.currentUser;
+
+                const roomIdInput = document.getElementById('room-id');
+                const roomId = roomIdInput ? roomIdInput.value.trim() : null;
+
+                if (!name || !roomId) {
+                    return showModal("Données Manquantes", "Pseudo et ID de room requis.");
+                }
+
+                joinBtn.disabled = true;
+                joinBtn.textContent = "Vérification...";
+
+                try {
+                    const res = await fetch(`/rooms/${roomId}/check`);
+                    
+                    if (res.ok) {
+                        window.location.href = `/game?room=${roomId}&player=${encodeURIComponent(name)}`;
+                    } else {
+                        const err = await res.json();
+                        showModal("Room introuvable", "Cet ID de room n'existe pas ou la partie est terminée.");
+                                        joinBtn.disabled = false;
+                        joinBtn.textContent = "Rejoindre";
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showModal("Erreur Réseau", "Impossible de contacter le serveur.");
+                    joinBtn.disabled = false;
+                    joinBtn.textContent = "Rejoindre";
+                }
             };
         }
     }
