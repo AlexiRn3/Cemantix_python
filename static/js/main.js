@@ -4,36 +4,9 @@ import { addHistoryMessage, setRoomInfo, showModal, closeModal } from "./ui.js";
 import { addEntry, renderHistory, renderScoreboard, triggerConfetti } from "./rendering.js";
 import { initChat, addChatMessage } from "./chat_ui.js";
 // --- GESTION DE SESSION ---
-const STORAGE_KEY = "arcade_user_pseudo";
+export const STORAGE_KEY = "arcade_user_pseudo";
 const DAILY_WIN_KEY = "arcade_daily_win";
-let currentUser = localStorage.getItem(STORAGE_KEY) || "";
-
-function checkDailyVictory() {
-    const dailyBtn = document.getElementById("btn-daily");
-    if (!dailyBtn) return;
-
-    // Réinitialise l'état du bouton par défaut
-    dailyBtn.textContent = "Relever le défi";
-    dailyBtn.classList.remove("btn-disabled");
-    dailyBtn.onclick = () => createGame('cemantix', 'daily');
-
-    // Si pas d'utilisateur connecté, on ne peut pas vérifier sa victoire spécifique
-    if (!currentUser) return;
-
-    // Format YYYY-MM-DD
-    const today = new Date().toISOString().split('T')[0];
-    const userWinKey = `daily_win_${currentUser}_${today}`;
-
-    if (localStorage.getItem(userWinKey)) {
-        dailyBtn.textContent = "Défi du jour accompli ✅";
-        dailyBtn.classList.add("btn-disabled"); // Grise le bouton
-        dailyBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        };
-    }
-}
+export let currentUser = localStorage.getItem(STORAGE_KEY) || "";
 
 document.addEventListener("DOMContentLoaded", () => {
     updateSessionUI();
@@ -79,99 +52,6 @@ function updateSessionUI() {
         if(btn) btn.classList.remove("logged-in");
     }
 }
-
-// Fonction globale pour ouvrir la modale de connexion
-window.openLoginModal = function() {
-    const isInGame = window.location.pathname === "/game";
-    const overlay = document.getElementById('modal-overlay');
-    const titleEl = document.getElementById('modal-title');
-    const contentEl = document.getElementById('modal-content');
-    const actionsEl = document.getElementById('modal-actions') || document.querySelector('.modal-actions');
-
-    if (!overlay || !actionsEl) return;
-
-    let htmlContent = '';
-    let buttonsHtml = '';
-
-    if (isInGame) {
-        // Mode Jeu : Verrouillé
-        htmlContent = `
-            <div style="margin-bottom: 20px;">
-                <p>Vous êtes connecté en tant que :</p>
-                <input type="text" value="${currentUser}" disabled style="margin-top:15px; text-align:center; opacity:0.7;">
-                <p class="locked-message">🔒 Pseudo verrouillé en partie.</p>
-            </div>`;
-        buttonsHtml = `
-            <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
-                <button class="btn" onclick="closeModal()">Fermer</button>
-                <button class="btn btn-danger" onclick="logout()">Se déconnecter & Quitter</button>
-            </div>`;
-    } else {
-        // Mode Hub : Modifiable
-        htmlContent = `
-            <div style="margin-bottom: 20px;">
-                <p>Votre pseudo pour la session :</p>
-                <input type="text" id="login-pseudo" value="${currentUser}" placeholder="Pseudo..." style="margin-top:15px; text-align:center;">
-            </div>`;
-        const logoutBtn = currentUser ? `<button class="btn btn-danger" onclick="logout()">Se déconnecter</button>` : '';
-        buttonsHtml = `
-            <div style="display:flex; flex-direction:column; gap:15px; width:100%;">
-                <button class="btn" onclick="saveSessionPseudo()">Valider</button>
-                ${logoutBtn}
-                <button class="btn btn-outline" onclick="closeModal()">Fermer</button> </div>`;
-    }
-
-    titleEl.textContent = "PROFIL";
-    contentEl.innerHTML = htmlContent;
-    actionsEl.innerHTML = buttonsHtml;
-    overlay.classList.add('active');
-
-    if (!isInGame) {
-        setTimeout(() => {
-            const input = document.getElementById('login-pseudo');
-            if (input) {
-                input.focus();
-                input.onkeydown = (e) => { if(e.key === "Enter") saveSessionPseudo(); };
-            }
-        }, 100);
-    }
-};
-
-window.logout = function() {
-    localStorage.removeItem(STORAGE_KEY);
-    currentUser = "";
-    updateSessionUI();
-    const nameInput = document.getElementById('player-name');
-    if (nameInput) nameInput.value = "";
-    
-    if (window.location.pathname === "/game") {
-        window.location.href = "/";
-    } else {
-        closeModal();
-    }
-};
-
-// Cherche la fonction window.saveSessionPseudo et ajoute la ligne à la fin
-window.saveSessionPseudo = function() {
-    const input = document.getElementById('login-pseudo');
-    const newName = input.value.trim();
-    if (newName) {
-        currentUser = newName;
-        localStorage.setItem(STORAGE_KEY, currentUser);
-        updateSessionUI();
-        const hubInput = document.getElementById('player-name');
-        if (hubInput) hubInput.value = currentUser;
-        
-        // AJOUT ICI : On vérifie si ce nouveau pseudo a déjà gagné aujourd'hui
-        checkDailyVictory(); 
-        
-        closeModal();
-    } else {
-        input.classList.add('error-shake');
-        setTimeout(() => input.classList.remove('error-shake'), 500);
-    }
-};
-
 
 const params = new URLSearchParams(window.location.search);
 const roomId = params.get("room");
@@ -458,87 +338,6 @@ async function submitIntruderGuess(word, buttonElement) {
         console.error(err);
         buttonElement.disabled = false;
     }
-}
-
-// --- MODIFICATION MAJEURE ICI ---
-function handleVictory(winnerName, scoreboardData) {
-    if (state.locked) return;
-    state.locked = true;
-    triggerConfetti();
-
-    // --- MODIFICATION 1 : Enregistrement lié au pseudo ---
-    if (state.currentMode === "daily") {
-        const today = new Date().toISOString().split('T')[0];
-        // On utilise winnerName (celui qui a trouvé) ou currentUser pour être sûr
-        // Ici on suppose que c'est le joueur local qui voit sa victoire
-        const userWinKey = `daily_win_${currentUser}_${today}`;
-        localStorage.setItem(userWinKey, "true");
-    }
-
-    let scoreTableHtml = `
-        <p style="font-size:1.2rem; margin-bottom:20px;">Le mot a été trouvé par <strong style="color:var(--accent)">${winnerName}</strong> !</p>
-        <div style="background:#f8f9fa; border-radius:12px; padding:15px; text-align:left; margin-bottom: 20px; border: 1px solid #eee;">
-    `;
-    
-    if (scoreboardData && scoreboardData.length > 0) {
-        scoreboardData.forEach((p, index) => {
-            const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
-            scoreTableHtml += `
-                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; font-family:var(--font-heading); color:var(--text-main);">
-                    <span>${medal} ${p.player_name}</span>
-                    <span>${p.attempts} essais</span>
-                </div>
-            `;
-        });
-    }
-    scoreTableHtml += "</div>";
-    
-    // Zone pour le statut d'attente
-    scoreTableHtml += `<div id="reset-status-msg" style="color:var(--text-muted); font-style:italic; min-height: 20px; margin-bottom: 10px;"></div>`;
-
-    setTimeout(() => {
-        showModal("MISSION ACCOMPLIE", scoreTableHtml, true);
-        
-        const actionsDiv = document.getElementById('modal-actions');
-        if (actionsDiv) {
-            // --- MODIFICATION 2 : Affichage conditionnel des boutons ---
-            let buttonsHtml = "";
-            
-            // Si c'est le mode Daily, on affiche SEULEMENT le retour au Hub
-            if (state.currentMode === "daily") {
-                 buttonsHtml = `
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button id="btn-hub" class="btn">Retour au Hub</button>
-                    </div>
-                `;
-            } else {
-                // Sinon (Coop, Blitz...), on affiche Rejouer + Retour
-                buttonsHtml = `
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button id="btn-replay" class="btn">Rejouer la partie</button>
-                        <button id="btn-hub" class="btn btn-outline">Retour au Hub</button>
-                    </div>
-                `;
-            }
-
-            actionsDiv.innerHTML = buttonsHtml;
-
-            // Attacher les écouteurs (avec vérification d'existence)
-            const replayBtn = document.getElementById('btn-replay');
-            if (replayBtn) {
-                replayBtn.onclick = function() {
-                    sendResetRequest(this);
-                };
-            }
-            
-            const hubBtn = document.getElementById('btn-hub');
-            if (hubBtn) {
-                hubBtn.onclick = function() {
-                    window.location.href = "/";
-                };
-            }
-        }
-    }, 1000);
 }
 
 // Envoyer la demande de reset
@@ -1009,10 +808,6 @@ function openDictioConfig() {
     document.getElementById('config-mode').value = "coop";
     toggleDurationDisplay();
 }
-// 2. Fermer la modale
-function closeConfigModal() {
-    document.getElementById('config-modal').classList.remove('active');
-}
 
 function verifierPseudo() {
     // Cas 1: On est sur le Hub avec un input
@@ -1160,118 +955,6 @@ document.getElementById('btn-join').onclick = () => {
     if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");
     window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
 };
-
-function injectBugButton() {
-    // Vérifie si le bouton existe déjà pour éviter les doublons
-    if (document.getElementById('bug-trigger')) return;
-
-    const btn = document.createElement('button');
-    btn.id = 'bug-trigger';
-    btn.className = 'bug-float-btn';
-    btn.innerHTML = '🐛';
-    btn.title = "Signaler un bug";
-    btn.onclick = openBugModal;
-    
-    document.body.appendChild(btn);
-}
-
-function openBugModal() {
-    const currentUser = localStorage.getItem("arcade_user_pseudo") || "Anonyme"; 
-    
-    const htmlContent = `
-        <div class="bug-form" style="text-align:left;">
-            <p style="margin-bottom:10px;">Oups ! Quelque chose ne va pas ? Décrivez le problème :</p>
-            <textarea id="bug-desc" placeholder="Ex: Le jeu plante quand je clique sur..."></textarea>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:5px;">
-                Signalé par : <strong>${currentUser}</strong>
-            </p>
-        </div>
-    `;
-
-    // CORRECTION : On appelle directement la fonction importée, sans "window."
-    showModal("SIGNALER UN BUG", htmlContent);
-    
-    // Remplacement des boutons de la modale
-    const actionsDiv = document.getElementById('modal-actions');
-    if (actionsDiv) {
-        actionsDiv.innerHTML = `
-            <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
-                <button id="btn-submit-bug" class="btn btn-danger">Envoyer</button>
-                <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
-            </div>
-        `;
-    }
-
-    const submitBtn = document.getElementById('btn-submit-bug');
-        if (submitBtn) {
-            submitBtn.onclick = function() {
-                sendBugReport(currentUser);
-            };
-        }
-    
-    // Focus automatique sur la zone de texte
-    setTimeout(() => {
-        const txt = document.getElementById('bug-desc');
-        if(txt) txt.focus();
-    }, 100);
-}
-
-window.sendBugReport = async function(player) {
-    const descInput = document.getElementById('bug-desc');
-    const description = descInput.value.trim();
-    
-    if (!description) {
-        descInput.style.borderColor = "red";
-        return;
-    }
-
-    // Bouton chargement
-    const btn = document.querySelector('#modal-actions .btn-danger');
-    if(btn) {
-        btn.disabled = true;
-        btn.textContent = "Envoi...";
-    }
-
-    // Détection du contexte (Hub ou Room ID)
-    const params = new URLSearchParams(window.location.search);
-    const roomId = params.get("room");
-    const context = roomId ? `Room ${roomId}` : "Hub Principal";
-
-    try {
-        const res = await fetch('/report-bug', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                player_name: player,
-                description: description,
-                context: context
-            })
-        });
-
-        if (res.ok) {
-            // Confirmation visuelle réutilisant la modale
-            const modalContent = document.getElementById('modal-content');
-            if(modalContent) modalContent.innerHTML = `<div style="color:var(--success); font-size:1.2rem; margin:20px 0;">✅ Message envoyé aux développeurs !</div>`;
-            
-            // Fermeture auto après 2s
-            setTimeout(() => {
-                if(window.closeModal) window.closeModal();
-            }, 1500);
-        } else {
-            alert("Erreur lors de l'envoi.");
-            if(window.closeModal) window.closeModal();
-        }
-    } catch (e) {
-        console.error(e);
-        alert("Erreur réseau.");
-        if(window.closeModal) window.closeModal();
-    }
-};
-
-// Injection au chargement
-document.addEventListener("DOMContentLoaded", () => {
-    injectBugButton();
-});
 
 
 window.createGame = createGame;
