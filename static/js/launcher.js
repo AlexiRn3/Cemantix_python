@@ -93,7 +93,8 @@ export function openGameConfig(type) {
         // On masque les éléments standards
         [modeGroup, durationGroup, desc].forEach(el => { if(el) el.style.display = 'none'; });
 
-        const originalContent = duelMenu.innerHTML;
+        const duelMenu = document.createElement('div');
+        duelMenu.id = 'duel-menu-container';
         
         duelMenu.innerHTML = `
             <h2 style="text-align: center; margin-bottom: 30px;">⚔️ Duel de Concepts</h2>
