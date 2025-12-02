@@ -88,6 +88,8 @@ export function openGameConfig(type) {
 
     if (type === 'duel') {
 
+        if(title) title.textContent = "⚔️ Duel de Concepts";
+
         // On masque les éléments standards
         [modeGroup, durationGroup, desc].forEach(el => { if(el) el.style.display = 'none'; });
 
@@ -95,7 +97,6 @@ export function openGameConfig(type) {
         duelMenu.id = 'duel-menu-container';
         
         duelMenu.innerHTML = `
-            <h2 style="text-align: center; margin-bottom: 30px;">⚔️ Duel de Concepts</h2>
             <p style="text-align:center; margin-bottom: 20px; color: var(--text-muted);">
                 Affrontez un autre joueur en temps réel.<br>
                 Trouvez le mot le plus proche du thème en 60 secondes.
