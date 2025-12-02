@@ -45,7 +45,7 @@ export function addChatMessage(player, content) {
     const container = document.getElementById("chat-messages");
     if (!container) return;
     const div = document.createElement("div");
-    const isMe = player === currentUser; 
+    const isMe = player === state.currentUser; 
     div.className = `chat-msg ${isMe ? 'me' : 'others'}`;
     div.innerHTML = `<strong>${player}</strong> ${content}`;
     container.appendChild(div);

@@ -16,11 +16,11 @@ export function checkDailyVictory() {
     dailyBtn.onclick = () => createGame('cemantix', 'daily');
 
     // Si pas d'utilisateur connecté, on ne peut pas vérifier sa victoire spécifique
-    if (!currentUser) return;
+    if (!state.currentUser) return;
 
     // Format YYYY-MM-DD
     const today = new Date().toISOString().split('T')[0];
-    const userWinKey = `daily_win_${currentUser}_${today}`;
+    const userWinKey = `daily_win_${state.currentUser}_${today}`;
 
     if (localStorage.getItem(userWinKey)) {
         dailyBtn.textContent = "Défi du jour accompli ✅";
@@ -38,12 +38,9 @@ function handleVictory(winnerName, scoreboardData) {
     state.locked = true;
     triggerConfetti();
 
-    // --- MODIFICATION 1 : Enregistrement lié au pseudo ---
     if (state.currentMode === "daily") {
         const today = new Date().toISOString().split('T')[0];
-        // On utilise winnerName (celui qui a trouvé) ou currentUser pour être sûr
-        // Ici on suppose que c'est le joueur local qui voit sa victoire
-        const userWinKey = `daily_win_${currentUser}_${today}`;
+        const userWinKey = `daily_win_${state.currentUser}_${today}`;
         localStorage.setItem(userWinKey, "true");
     }
 

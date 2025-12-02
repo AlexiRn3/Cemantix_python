@@ -4,8 +4,8 @@ import { state } from "./state.js";
 export const STORAGE_KEY = "arcade_user_pseudo";
 
 export function setCurrentUser(name) {
-    currentUser = name;
-    localStorage.setItem(STORAGE_KEY, currentUser);
+    state.currentUser = name;
+    localStorage.setItem(STORAGE_KEY, state.currentUser);
     updateSessionUI();
 }
 
@@ -13,8 +13,8 @@ export function updateSessionUI() {
     const display = document.getElementById("profile-name-display");
     const btn = document.getElementById("btn-profile");
     
-    if (currentUser) {
-        if(display) display.textContent = currentUser;
+    if (state.currentUser) {
+        if(display) display.textContent = state.currentUser;
         if(btn) btn.classList.add("logged-in");
     } else {
         if(display) display.textContent = "Connexion";
@@ -28,8 +28,8 @@ export function verifierPseudo() {
     // Cas 1: Input présent (Hub)
     if (nameInput) {
         let name = nameInput.value.trim();
-        if (!name && currentUser) {
-            name = currentUser;
+        if (!name && state.currentUser) {
+            name = state.currentUser;
             nameInput.value = name;
         }
 
@@ -38,14 +38,14 @@ export function verifierPseudo() {
             return false;
         }
         
-        if (name !== currentUser) {
+        if (name !== state.currentUser) {
             setCurrentUser(name);
         }
         return true;
     }
     
     // Cas 2: Pas d'input
-    if (!currentUser) {
+    if (!state.currentUser) {
         if(window.openLoginModal) window.openLoginModal();
         return false;
     }
@@ -54,7 +54,7 @@ export function verifierPseudo() {
 
 export function logout() {
     localStorage.removeItem(STORAGE_KEY);
-    currentUser = "";
+    state.currentUser = "";
     updateSessionUI();
     const nameInput = document.getElementById('player-name');
     if (nameInput) nameInput.value = "";
@@ -71,11 +71,11 @@ export function saveSessionPseudo() {
     const input = document.getElementById('login-pseudo');
     const newName = input.value.trim();
     if (newName) {
-        currentUser = newName;
-        localStorage.setItem(STORAGE_KEY, currentUser);
+        state.currentUser = newName;
+        localStorage.setItem(STORAGE_KEY, state.currentUser);
         updateSessionUI();
         const hubInput = document.getElementById('player-name');
-        if (hubInput) hubInput.value = currentUser;
+        if (hubInput) hubInput.value = state.currentUser;
         
         // AJOUT ICI : On vérifie si ce nouveau pseudo a déjà gagné aujourd'hui
         checkDailyVictory(); 
