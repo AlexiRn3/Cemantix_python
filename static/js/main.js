@@ -190,6 +190,9 @@ export function initApp() {
                 .then(response => {
                     if (response.status === 404) {
                         window.location.href = `/?error=room_not_found&room=${roomId}`;
+                        showModal("Room introuvable", "Cet ID de room n'existe pas ou la partie est terminée.");
+                         joinBtn.disabled = false;
+                        joinBtn.textContent = "Rejoindre";
                     } else {
                         initGameConnection(roomId, playerName);
                     }
