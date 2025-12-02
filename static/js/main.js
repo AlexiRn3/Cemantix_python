@@ -234,28 +234,7 @@ window.initApp = initApp;
 // Premier lancement au chargement réel de la page
 document.addEventListener("DOMContentLoaded", initApp);
 
-export let currentConfigType = "definition"; // 'definition' ou 'intruder'
-
-
-
-
-function toggleDurationDisplay() {
-    // Cette fonction ne sert maintenant que pour Dictionnario
-    // car pour l'Intrus, le select "config-mode" est caché mais vaut "blitz"
-    const mode = document.getElementById('config-mode').value;
-    const durationGroup = document.getElementById('duration-group');
-    const desc = document.getElementById('mode-desc');
-
-    if (currentConfigType === 'definition') {
-        if (mode === 'blitz') {
-            durationGroup.style.display = 'block';
-            desc.textContent = "Trouvez un maximum de mots dans le temps imparti.";
-        } else {
-            durationGroup.style.display = 'none';
-            desc.textContent = "Trouvez un mot unique ensemble sans limite de temps.";
-        }
-    }
-}
+export let currentConfigType = "definition";
 
 window.createGame = async function(type, mode = 'coop', duration = 0) {
     if (!verifierPseudo()) return;
