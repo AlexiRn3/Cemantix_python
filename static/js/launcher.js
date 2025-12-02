@@ -75,7 +75,6 @@ export function openGameConfig(type) {
     
     currentConfigType = type;
     const modal = document.getElementById('config-modal');
-    const contentDiv = modal.querySelector('.modal-box');
     const modeGroup = document.getElementById('mode-group');
     const durationGroup = document.getElementById('duration-group');
     const title = document.getElementById('config-modal-title');
@@ -84,19 +83,19 @@ export function openGameConfig(type) {
 
     if(modal) modal.classList.add('active');
 
+    const existingDuelMenu = document.getElementById('duel-menu-container');
+    if (existingDuelMenu) existingDuelMenu.remove();
+
     if (type === 'duel') {
 
-        const duelMenu = document.getElementById('duel-menu-container');
-            if(duelMenu) duelMenu.remove();
+        if(title) title.textContent = "⚔️ Duel de Concepts";
 
         // On masque les éléments standards
         [modeGroup, durationGroup, desc].forEach(el => { if(el) el.style.display = 'none'; });
-        
-        if(title) title.textContent = "⚔️ Duel de Concepts";
 
-        const originalContent = contentDiv.innerHTML;
+        const originalContent = duelMenu.innerHTML;
         
-        contentDiv.innerHTML = `
+        duelMenu.innerHTML = `
             <h2 style="text-align: center; margin-bottom: 30px;">⚔️ Duel de Concepts</h2>
             <p style="text-align:center; margin-bottom: 20px; color: var(--text-muted);">
                 Affrontez un autre joueur en temps réel.<br>
@@ -114,7 +113,7 @@ export function openGameConfig(type) {
 
         title.insertAdjacentElement('afterend', duelMenu);
 
-        const inviteBtn = contentDiv.querySelector('#btn-invite');
+        const inviteBtn = duelMenu.querySelector('#btn-invite');
         if (inviteBtn) {
             inviteBtn.onclick = () => {
                 closeConfigModal();
@@ -123,18 +122,24 @@ export function openGameConfig(type) {
         }
 
         document.getElementById('btn-random').onclick = () => {
-            joinRandomDuel();
+            if (typeof joinRandomDuel === 'function') {
+                 joinRandomDuel();
+             } else {
+                 console.error("joinRandomDuel n'est pas définie dans ce scope");
+             };
         };
 
-        const closeBtn = contentDiv.querySelector('.btn-close');
+        const closeBtn = duelMenu.querySelector('.btn-close');
         if (closeBtn) {
             closeBtn.onclick = () => {
                 closeConfigModal();
-                setTimeout(() => contentDiv.innerHTML = originalContent, 100);
+                setTimeout(() => duelMenu.innerHTML = originalContent, 100);
             };
         }
         return;
     } 
+
+    if(title) title.textContent = (type === 'intruder') ? "L'Intrus : Contre la montre" : "Config. Dictionnario";
     
     if (type === 'intruder') {
         if(title) title.textContent = "L'Intrus : Contre la montre";
