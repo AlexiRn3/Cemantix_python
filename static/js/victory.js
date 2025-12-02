@@ -1,4 +1,4 @@
-import { createGame, currentUser } from "./main.js";
+import { createGame } from "./api.js";
 import { elements } from "./dom.js";
 import { state } from "./state.js";
 import { triggerConfetti } from "./rendering.js";

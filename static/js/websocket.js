@@ -3,7 +3,6 @@ import { addEntry, renderHistory, renderScoreboard, triggerConfetti, updateRoomS
 import { addHistoryMessage, setRoomInfo, showModal } from "./ui.js";
 import { addChatMessage } from "./chat_ui.js";
 import { initGameUI, performGameReset, updateHangmanUI, startTimer, updateMusicContext, handleDefeat, handleBlitzSuccess, updateResetStatus } from "./game_logic.js";
-import { currentUser } from "./state.js";
 import { handleVictory } from "./victory.js";
 
 export function openWebsocket(playerName) {

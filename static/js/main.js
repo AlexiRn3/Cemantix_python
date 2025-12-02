@@ -6,11 +6,11 @@ import { initChat, addChatMessage } from "./chat_ui.js";
 import { verifierPseudo, logout, updateSessionUI, saveSessionPseudo } from "./session.js";
 import { copyToClipboard } from "./utils.js";
 import { initGameUI, handleDefeat, handleBlitzSuccess, updateHangmanUI, performGameReset, updateResetStatus, startTimer, sendResetRequest } from "./game_logic.js";
-import { openGameConfig, openDictioConfig, closeConfigModal, submitGameConfig, toggleDurationDisplay, launchDictio } from "./launcher.js";
+import { openGameConfig, openDictioConfig, submitGameConfig, toggleDurationDisplay, launchDictio } from "./launcher.js";
 import { checkDailyVictory, handleVictory } from "./victory.js";
 import { openWebsocket } from "./websocket.js";
 import { createGame } from "./api.js";
-import { openLoginModal } from "./modal.js";
+import { openLoginModal, closeConfigModal } from "./modal.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     updateSessionUI();
@@ -235,28 +235,6 @@ window.initApp = initApp;
 document.addEventListener("DOMContentLoaded", initApp);
 
 export let currentConfigType = "definition";
-
-window.createGame = async function(type, mode = 'coop', duration = 0) {
-    if (!verifierPseudo()) return;
-    
-    const nameInput = document.getElementById('player-name');
-    let name = nameInput ? nameInput.value : state.currentUser;
-    
-    if(!name && state.currentUser) name = state.currentUser;
-    
-    const res = await fetch('/rooms', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ player_name: name, game_type: type, mode: mode, duration: duration })
-    });
-    if (!res.ok) {
-        const errorData = await res.json();
-        showModal("Erreur de création de partie", errorData.message || "Erreur inconnue lors de la création de la room.");
-        return;
-    }
-    const data = await res.json();
-    window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(name)}`;
-};
 
 document.getElementById('btn-join').onclick = () => {
     if (!verifierPseudo()) return;
