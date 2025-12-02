@@ -1281,11 +1281,18 @@ function openBugModal() {
     if (actionsDiv) {
         actionsDiv.innerHTML = `
             <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
-                <button class="btn btn-danger" onclick="sendBugReport('${currentUser}')">Envoyer</button>
+                <button id="btn-submit-bug" class="btn btn-danger">Envoyer</button>
                 <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
             </div>
         `;
     }
+
+    const submitBtn = document.getElementById('btn-submit-bug');
+        if (submitBtn) {
+            submitBtn.onclick = function() {
+                sendBugReport(currentUser);
+            };
+        }
     
     // Focus automatique sur la zone de texte
     setTimeout(() => {
