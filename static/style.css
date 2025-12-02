@@ -1215,3 +1215,228 @@ input:disabled {
     border-color: var(--accent);
     background: white;
 }
+
+/* =========================================
+   ADAPTATION MOBILE COMPLÈTE (Max 768px)
+   ========================================= */
+@media screen and (max-width: 768px) {
+
+    /* 1. LAYOUT GLOBAL & CONTENEUR */
+    body {
+        background-size: 12px 12px; /* Motif plus petit */
+    }
+
+    .container {
+        width: 100%;
+        padding: 15px;
+        margin: 0;
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+
+    /* 2. TYPOGRAPHIE RESPONSIVE */
+    .hero {
+        padding: 40px 0 30px;
+    }
+
+    .hero h1 {
+        font-size: 3rem; /* Réduction drastique pour éviter le débordement */
+        line-height: 1.1;
+    }
+
+    .hero p {
+        font-size: 1rem;
+        padding: 0 10px;
+    }
+
+    /* 3. GRILLE DU HUB (Une seule colonne) */
+    .games-grid {
+        grid-template-columns: 1fr; /* Force une colonne unique */
+        gap: 20px;
+    }
+
+    .game-card {
+        padding: 25px;
+        min-height: auto; /* Hauteur flexible */
+    }
+
+    .game-card h3 {
+        font-size: 1.5rem;
+    }
+
+    /* 4. INTERFACE DE JEU (Réorganisation verticale) */
+    .game-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    #game-title {
+        font-size: 1.8rem;
+    }
+
+    .game-layout {
+        display: flex;
+        flex-direction: column; /* Empile les éléments */
+        gap: 20px;
+    }
+
+    /* Ordre d'affichage sur mobile :
+       1. Zone de jeu (Input)
+       2. Légende/Instructions
+       3. Historique
+       4. Scoreboard (mis à la fin car moins prioritaire)
+    */
+    .game-area {
+        order: 1;
+        width: 100%;
+    }
+
+    #game-instruction, #legend-panel {
+        order: 2;
+        margin-bottom: 10px;
+    }
+    
+    /* On cache le scoreboard ou on le met à la fin */
+    .panel { 
+        order: 4; 
+        padding: 15px;
+    }
+
+    #history {
+        order: 3;
+    }
+
+    /* 5. FORMULAIRE DE JEU & INPUTS */
+    .guess-form {
+        padding: 5px;
+        border-radius: 50px; /* Plus compact */
+    }
+
+    .guess-form input {
+        font-size: 16px; /* CRITIQUE: 16px empêche le zoom auto sur iOS */
+        padding: 12px 15px;
+    }
+
+    .guess-form .btn {
+        padding: 12px 20px; /* Bouton plus facile à toucher */
+    }
+
+    /* 6. MODALES (Plein écran ou presque) */
+    .modal-box {
+        width: 90%;
+        padding: 25px;
+        max-height: 85vh;
+        overflow-y: auto; /* Scroll si le contenu dépasse */
+    }
+
+    .modal-title {
+        font-size: 1.8rem;
+    }
+
+    .help-grid {
+        grid-template-columns: 1fr; /* Une colonne pour l'aide */
+        gap: 15px;
+    }
+
+    /* 7. JEU: PENDU (Clavier optimisé) */
+    #hangman-word {
+        font-size: 2rem;
+        letter-spacing: 0.2rem;
+        word-wrap: break-word; /* Évite que les longs mots cassent la page */
+    }
+
+    .battery-container {
+        width: 100%; /* S'adapte à la largeur du téléphone */
+        max-width: 300px;
+    }
+
+    #hangman-keyboard {
+        gap: 6px; /* Touches plus rapprochées */
+    }
+
+    .key-btn {
+        width: 38px; /* Touches un peu plus petites pour tout faire tenir */
+        height: 48px;
+        font-size: 1rem;
+    }
+
+    /* 8. JEU: INTRUS (Grille 2 colonnes maintenue mais ajustée) */
+    .intruder-grid {
+        grid-template-columns: 1fr 1fr; /* On garde 2 colonnes, c'est jouable */
+        gap: 10px;
+    }
+
+    .intruder-btn {
+        padding: 15px; /* Moins de padding */
+        font-size: 1.1rem;
+        min-height: 80px; /* Hauteur minimale pour le doigt */
+        word-break: break-word;
+    }
+
+    /* 9. ÉLÉMENTS FLOTTANTS (Chat, Musique, Aide) */
+    /* On évite qu'ils se chevauchent ou gênent la saisie */
+    
+    .chat-container {
+        width: 100%; /* Chat plein écran en largeur */
+        right: 0;
+        bottom: 0;
+        border-radius: 15px 15px 0 0;
+    }
+    
+    .chat-messages {
+        height: 40vh; /* Moins haut sur mobile pour voir le clavier */
+    }
+
+    /* Boutons flottants plus petits et mieux placés */
+    .help-float-btn {
+        width: 50px;
+        height: 50px;
+        bottom: 80px; /* Remonté pour ne pas gêner le chat/footer */
+        right: 15px;
+        font-size: 1.4rem;
+    }
+
+    .bug-float-btn {
+        width: 40px;
+        height: 40px;
+        bottom: 80px;
+        left: 15px;
+        font-size: 1.2rem;
+    }
+
+    /* Music Drawer en bas de l'écran ou caché différemment */
+    #music-drawer {
+        top: auto;
+        bottom: 140px; /* Au dessus des autres boutons */
+        transform: translateX(100%); /* Caché à droite */
+    }
+    
+    #music-drawer.active {
+        transform: translateX(0);
+    }
+
+    /* 10. DIVERS */
+    .score-row {
+        font-size: 0.9rem;
+    }
+    
+    /* Cacher les particules de fond si elles ralentissent le mobile */
+    .falling-objects-background {
+        display: none; 
+    }
+    
+    .user-controls {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+    }
+    
+    .profile-btn {
+        padding: 5px 12px;
+        font-size: 0.9rem;
+    }
+}
