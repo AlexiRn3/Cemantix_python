@@ -186,12 +186,20 @@ export function initApp() {
         if (!roomId || !playerName) {
             window.location.href = "/";
         } else {
-            initGameConnection(roomId, playerName);
+            fetch(`/rooms/${roomId}/check`)
+                .then(response => {
+                    if (response.status === 404) {
+                        window.location.href = `/?error=room_not_found&room=${roomId}`;
+                    } else {
+                        initGameConnection(roomId, playerName);
+                    }
+                })
+                .catch(err => {
+                    console.error("Erreur check room:", err);
+                    initGameConnection(roomId, playerName);
+                });
         }
-        
-        // Réattachement du formulaire de jeu (CORRECTION BUG 1)
         if (elements.form) {
-            // On supprime l'ancien listener pour éviter les doublons si on est en SPA pure
             const newForm = elements.form.cloneNode(true);
             elements.form.parentNode.replaceChild(newForm, elements.form);
             elements.form = newForm; // Mise à jour référence
@@ -205,7 +213,6 @@ export function initApp() {
                 
                 const word = elements.input.value.trim();
                 
-                // CORRECTION : Plus de modale, juste une animation et un message
                 if (!word) {
                     addHistoryMessage("⚠️ Il faut écrire un mot avant d'essayer.", 2000); 
                     elements.input.classList.add("error-shake");
