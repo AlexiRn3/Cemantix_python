@@ -21,24 +21,32 @@ export function handleBlitzSuccess(data) {
 export function startTimer(endTime) {
     const timerEl = document.getElementById('timer-display');
     const panel = document.getElementById('blitz-panel');
-    if(panel) panel.style.display = 'block';
+    if (panel) panel.style.display = 'block';
 
+    // 1. Gestion de l'attente (si endTime est 0 ou null)
+    if (!endTime || endTime === 0) {
+        if (timerEl) timerEl.textContent = "En attente d'un joueur...";
+        return;
+    }
+
+    // 2. Nettoyage de l'intervalle précédent s'il existe dans le state
+    if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+    }
+
+    // 3. Définition de la logique de mise à jour
     const updateTimer = () => {
         const now = Date.now() / 1000;
         const diff = endTime - now;
 
         if (diff <= 0) {
-            clearInterval(interval);
-            if(timerEl) timerEl.textContent = "00:00";
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+            
+            if (timerEl) timerEl.textContent = "00:00";
+
             if (state.gameType === "duel") {
-                // On récupère les données du scoreboard actuel (state.entries ou via le DOM)
-                // Le scoreboard est déjà trié par best_similarity dans rendering.js / renderScoreboard
-                // On va tricher un peu et regarder le premier élément du DOM scoreboard s'il existe,
-                // ou attendre que le serveur envoie un event "victory" (plus propre, mais demande modif backend).
-                
-                // Méthode simple : On demande au serveur de reset ou on affiche le leader actuel.
-                // Pour l'instant, affichons simplement un message générique invitant à regarder le tableau.
-                
                 showModal("DUEL TERMINÉ ⚔️", `
                     <div style="margin-bottom: 20px;">
                         Le temps est écoulé !<br>
@@ -48,7 +56,7 @@ export function startTimer(endTime) {
             } else {
                 const scoreEl = document.getElementById('score-display');
                 const score = scoreEl ? scoreEl.textContent : "0";
-                
+
                 showModal("TEMPS ÉCOULÉ", `
                     <div style="margin-bottom: 20px;">
                         C'est terminé !<br>
@@ -58,27 +66,34 @@ export function startTimer(endTime) {
             }
 
             const actionsDiv = document.getElementById('modal-actions');
-            if(actionsDiv) {
+            if (actionsDiv) {
                 actionsDiv.innerHTML = `
                     <div style="display: flex; gap: 10px; justify-content: center;">
                         <button id="btn-blitz-replay" class="btn">Rejouer</button>
                         <button id="btn-hub-return" class="btn btn-outline">Retour au Hub</button>
                     </div>
                 `;
-                document.getElementById('btn-hub-return').onclick = () => window.location.href = "/";
-                document.getElementById('btn-blitz-replay').onclick = function() {
-                    sendResetRequest(this);
-                };
+                
+                const btnHub = document.getElementById('btn-hub-return');
+                if(btnHub) btnHub.onclick = () => window.location.href = "/";
+                
+                const btnReplay = document.getElementById('btn-blitz-replay');
+                if(btnReplay) {
+                    btnReplay.onclick = function() {
+                        if(typeof sendResetRequest === 'function') {
+                            sendResetRequest(this);
+                        }
+                    };
+                }
             }
         } else {
             const m = Math.floor(diff / 60);
             const s = Math.floor(diff % 60);
-            if(timerEl) timerEl.textContent = `${m}:${s < 10 ? '0'+s : s}`;
+            if (timerEl) timerEl.textContent = `${m}:${s < 10 ? '0' + s : s}`;
         }
     };
-
     updateTimer();
-    const interval = setInterval(updateTimer, 1000);
+    state.timerInterval = setInterval(updateTimer, 1000);
 }
 
 export function initGameUI(data) {
