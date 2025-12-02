@@ -57,6 +57,7 @@ export function openGameConfig(type) {
     
     currentConfigType = type;
     const modal = document.getElementById('config-modal');
+    const contentDiv = modal.querySelector('.modal-box');
     const modeGroup = document.getElementById('mode-group');
     const durationGroup = document.getElementById('duration-group');
     const title = document.getElementById('config-modal-title');
@@ -66,8 +67,6 @@ export function openGameConfig(type) {
     if(modal) modal.classList.add('active');
 
     if (type === 'duel') {
-        // On remplace temporairement le contenu de la modale pour afficher les choix
-        // Sauvegarde du contenu original si besoin, ou on le reconstruit plus tard
         const originalContent = contentDiv.innerHTML;
         
         contentDiv.innerHTML = `
