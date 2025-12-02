@@ -1,5 +1,5 @@
 import { openLoginModal } from "./modal.js";
-import { currentUser } from "./state.js";
+import { state } from "./state.js";
 
 export const STORAGE_KEY = "arcade_user_pseudo";
 
