@@ -3,7 +3,7 @@ import { state } from "./state.js";
 import { addHistoryMessage, setRoomInfo, showModal, closeModal } from "./ui.js";
 import { addEntry, renderHistory, renderScoreboard } from "./rendering.js";
 import { initChat, addChatMessage } from "./chat_ui.js";
-import { verifierPseudo, currentUser, logout, updateSessionUI, saveSessionPseudo } from "./session.js";
+import { verifierPseudo, logout, updateSessionUI, saveSessionPseudo } from "./session.js";
 import { copyToClipboard } from "./utils.js";
 import { initGameUI, handleDefeat, handleBlitzSuccess, updateHangmanUI, performGameReset, updateResetStatus, startTimer, sendResetRequest } from "./game_logic.js";
 import { openGameConfig, openDictioConfig, closeConfigModal, submitGameConfig, toggleDurationDisplay, launchDictio } from "./launcher.js";
@@ -18,8 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Pré-remplissage du pseudo sur le Hub
     const nameInput = document.getElementById('player-name');
-    if (nameInput && currentUser) {
-        nameInput.value = currentUser;
+    if (nameInput && state.currentUser) {
+        nameInput.value = state.currentUser;
     }
 
     const cards = document.querySelectorAll('.game-card');
@@ -132,7 +132,7 @@ export function initApp() {
         if (window.musicManager) window.musicManager.setContext({ gameType: 'hub' });
 
         const nameInput = document.getElementById('player-name');
-        if (nameInput && currentUser) nameInput.value = currentUser;
+        if (nameInput && state.currentUser) nameInput.value = state.currentUser;
 
         // ... (Logique couleurs cartes inchangée) ...
 
@@ -141,8 +141,8 @@ export function initApp() {
             joinBtn.onclick = () => {
                 if (!verifierPseudo()) return;
                 const pInput = document.getElementById('player-name');
-                let name = pInput ? pInput.value : currentUser;
-                if(!name && currentUser) name = currentUser;
+                let name = pInput ? pInput.value : state.currentUser;
+                if(!name && state.currentUser) name = state.currentUser;
                 const room = document.getElementById('room-id').value;
                 if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");
                 window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
@@ -239,12 +239,10 @@ export let currentConfigType = "definition";
 window.createGame = async function(type, mode = 'coop', duration = 0) {
     if (!verifierPseudo()) return;
     
-    // CORRECTION : On vérifie si l'input existe, sinon on utilise le currentUser stocké
     const nameInput = document.getElementById('player-name');
-    let name = nameInput ? nameInput.value : currentUser;
+    let name = nameInput ? nameInput.value : state.currentUser;
     
-    // Si l'input est vide mais qu'on a un currentUser, on l'utilise
-    if(!name && currentUser) name = currentUser;
+    if(!name && state.currentUser) name = state.currentUser;
     
     const res = await fetch('/rooms', {
         method: 'POST',
@@ -265,8 +263,8 @@ document.getElementById('btn-join').onclick = () => {
     
     // CORRECTION : Même sécurisation que pour createGame
     const nameInput = document.getElementById('player-name');
-    let name = nameInput ? nameInput.value : currentUser;
-    if(!name && currentUser) name = currentUser;
+    let name = nameInput ? nameInput.value : state.currentUser;
+    if(!name && state.currentUser) name = state.currentUser;
 
     const room = document.getElementById('room-id').value;
     if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");

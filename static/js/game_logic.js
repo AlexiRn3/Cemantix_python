@@ -1,6 +1,5 @@
 import { state } from "./state.js";
 import { showModal, addHistoryMessage } from "./ui.js";
-import { currentUser } from "./session.js";
 
 export function handleBlitzSuccess(data) {
     initGameUI({ 
@@ -144,7 +143,7 @@ async function submitIntruderGuess(word, buttonElement) {
         const res = await fetch(`/rooms/${state.currentRoomId}/guess`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ word, player_name: currentUser })
+            body: JSON.stringify({ word, player_name: state.currentUser })
         });
         const data = await res.json();
         
@@ -244,7 +243,7 @@ async function submitHangmanGuess(letter, btnElement) {
         await fetch(`/rooms/${state.currentRoomId}/guess`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ word: letter, player_name: currentUser })
+            body: JSON.stringify({ word: letter, player_name: state.currentUser })
         });
     } catch (err) {
         console.error("Erreur réseau:", err);
@@ -288,7 +287,7 @@ export async function sendResetRequest(btnElement) {
     await fetch(`/rooms/${state.currentRoomId}/reset`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ player_name: currentUser })
+        body: JSON.stringify({ player_name: state.currentUser })
     });
 }
 

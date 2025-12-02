@@ -1,12 +1,13 @@
-import { verifierPseudo, currentUser } from "./session.js";
+import { verifierPseudo  } from "./session.js";
+import { state } from "./state.js";
 import { showModal } from "./ui.js";
 
 export async function createGame(type, mode = 'coop', duration = 0) {
     if (!verifierPseudo()) return;
     
     const nameInput = document.getElementById('player-name');
-    let name = nameInput ? nameInput.value : currentUser;
-    if(!name && currentUser) name = currentUser;
+    let name = nameInput ? nameInput.value : state.currentUser;
+    if(!name && state.currentUser) name = state.currentUser;
     
     const res = await fetch('/rooms', {
         method: 'POST',

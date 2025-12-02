@@ -18,7 +18,7 @@ window.openLoginModal = function() {
         htmlContent = `
             <div style="margin-bottom: 20px;">
                 <p>Vous êtes connecté en tant que :</p>
-                <input type="text" value="${currentUser}" disabled style="margin-top:15px; text-align:center; opacity:0.7;">
+                <input type="text" value="${state.currentUser}" disabled style="margin-top:15px; text-align:center; opacity:0.7;">
                 <p class="locked-message">🔒 Pseudo verrouillé en partie.</p>
             </div>`;
         buttonsHtml = `
@@ -31,9 +31,9 @@ window.openLoginModal = function() {
         htmlContent = `
             <div style="margin-bottom: 20px;">
                 <p>Votre pseudo pour la session :</p>
-                <input type="text" id="login-pseudo" value="${currentUser}" placeholder="Pseudo..." style="margin-top:15px; text-align:center;">
+                <input type="text" id="login-pseudo" value="${state.currentUser}" placeholder="Pseudo..." style="margin-top:15px; text-align:center;">
             </div>`;
-        const logoutBtn = currentUser ? `<button class="btn btn-danger" onclick="logout()">Se déconnecter</button>` : '';
+        const logoutBtn = state.currentUser ? `<button class="btn btn-danger" onclick="logout()">Se déconnecter</button>` : '';
         buttonsHtml = `
             <div style="display:flex; flex-direction:column; gap:15px; width:100%;">
                 <button class="btn" onclick="saveSessionPseudo()">Valider</button>
@@ -63,14 +63,12 @@ export function closeConfigModal() {
 }
 
 function openBugModal() {
-    const currentUser = localStorage.getItem("arcade_user_pseudo") || "Anonyme"; 
-    
     const htmlContent = `
         <div class="bug-form" style="text-align:left;">
             <p style="margin-bottom:10px;">Oups ! Quelque chose ne va pas ? Décrivez le problème :</p>
             <textarea id="bug-desc" placeholder="Ex: Le jeu plante quand je clique sur..."></textarea>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-top:5px;">
-                Signalé par : <strong>${currentUser}</strong>
+                Signalé par : <strong>${state.currentUser}</strong>
             </p>
         </div>
     `;
@@ -92,7 +90,7 @@ function openBugModal() {
     const submitBtn = document.getElementById('btn-submit-bug');
         if (submitBtn) {
             submitBtn.onclick = function() {
-                sendBugReport(currentUser);
+                sendBugReport(state.currentUser);
             };
         }
     
