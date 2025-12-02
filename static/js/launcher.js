@@ -86,8 +86,8 @@ export function openGameConfig(type) {
 
     if (type === 'duel') {
 
-        const existingDuelMenu = document.getElementById('duel-menu-container');
-        if(existingDuelMenu) existingDuelMenu.remove();
+        const duelMenu = document.getElementById('duel-menu-container');
+            if(duelMenu) duelMenu.remove();
 
         // On masque les éléments standards
         [modeGroup, durationGroup, desc].forEach(el => { if(el) el.style.display = 'none'; });
@@ -135,9 +135,6 @@ export function openGameConfig(type) {
         }
         return;
     } 
-
-    const duelMenu = document.getElementById('duel-menu-container');
-    if(duelMenu) duelMenu.remove();
     
     if (type === 'intruder') {
         if(title) title.textContent = "L'Intrus : Contre la montre";
