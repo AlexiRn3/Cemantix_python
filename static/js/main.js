@@ -152,13 +152,19 @@ export function initApp() {
 
                 try {
                     const res = await fetch(`/rooms/${roomId}/check`);
+                    const name = await fetch(`/rooms/${roomId}/check_pseudo`);
                     
-                    if (res.ok) {
+                    if (res.ok && name.ok) {
                         window.location.href = `/game?room=${roomId}&player=${encodeURIComponent(name)}`;
-                    } else {
+                    } else if (name.ok){
                         const err = await res.json();
                         showModal("Room introuvable", "Cet ID de room n'existe pas ou la partie est terminée.");
-                                        joinBtn.disabled = false;
+                         joinBtn.disabled = false;
+                        joinBtn.textContent = "Rejoindre";
+                    } else {
+                        const err = await name.json();
+                        showModal("Pseudo déjà utilisé", err.message || "Le pseudo est déjà utilisé dans cette partie.");
+                        joinBtn.disabled = false;
                         joinBtn.textContent = "Rejoindre";
                     }
                 } catch (e) {

@@ -364,7 +364,6 @@ async def reset_room(room_id: str, payload: ResetRequest):
 @app.get("/rooms/{room_id}/check_pseudo")
 def check_pseudo_availability(room_id: str, player_name: str):
     room = room_manager.get_room(room_id)
-
     if not room:
         return JSONResponse(status_code=404, content={"available": False, "message": "Room introuvable"})
     
