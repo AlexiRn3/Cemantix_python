@@ -1,6 +1,5 @@
-import { currentUser } from "./main";
 import { showModal, closeModal } from "./ui.js";
-import { STORAGE_KEY } from "./main.js";
+import { state } from "./state.js";
 
 window.openLoginModal = function() {
     const isInGame = window.location.pathname === "/game";
