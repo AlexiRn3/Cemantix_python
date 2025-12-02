@@ -815,8 +815,6 @@ async function copyToClipboard(text) {
 export function initApp() {
     console.log("Initialisation de l'application...");
 
-    injectBugButton();
-
     // 1. Mise à jour des références DOM
     elements.form = document.getElementById("guess-form");
     elements.input = document.getElementById("word-input");
@@ -1249,6 +1247,7 @@ if (chatForm) {
 }
 
 function injectBugButton() {
+    // Vérifie si le bouton existe déjà pour éviter les doublons
     if (document.getElementById('bug-trigger')) return;
 
     const btn = document.createElement('button');
