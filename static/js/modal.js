@@ -80,7 +80,7 @@ window.saveSessionPseudo = function() {
 };
 
 
-function closeConfigModal() {
+export function closeConfigModal() {
     document.getElementById('config-modal').classList.remove('active');
 }
 
@@ -191,20 +191,8 @@ function injectBugButton() {
     document.body.appendChild(btn);
 }
 
-window.logout = function() {
-    localStorage.removeItem(STORAGE_KEY);
-    currentUser = "";
-    updateSessionUI();
-    const nameInput = document.getElementById('player-name');
-    if (nameInput) nameInput.value = "";
-    
-    if (window.location.pathname === "/game") {
-        window.location.href = "/";
-    } else {
-        closeModal();
-    }
-};
-
 document.addEventListener("DOMContentLoaded", () => {
     injectBugButton();
 });
+
+window.openLoginModal = openLoginModal;

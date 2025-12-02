@@ -3,7 +3,7 @@ import { elements } from "./dom.js";
 import { state } from "./state.js";
 const DAILY_WIN_KEY = "arcade_daily_win";
 
-function checkDailyVictory() {
+export function checkDailyVictory() {
     const dailyBtn = document.getElementById("btn-daily");
     if (!dailyBtn) return;
 
