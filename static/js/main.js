@@ -75,8 +75,7 @@ export function initApp() {
         btnSurrender.onclick = (e) => {
             e.preventDefault();
             if (state.currentMode === "daily") {
-                alert("On n'abandonne pas le challenge du jour !");
-                return;
+                return showModal("Impossible de révéler le mot", "On ne peut pas abandonner le Daily Challenge !");
             }
             requestSurrender(true);
         };
