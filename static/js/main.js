@@ -13,6 +13,12 @@ import { createGame } from "./api.js";
 import { openLoginModal, closeConfigModal } from "./modal.js";
 
 document.addEventListener("DOMContentLoaded", () => {
+    const savedPseudo = localStorage.getItem("arcade_user_pseudo");
+    if (savedPseudo && !state.currentUser) {
+        state.currentUser = savedPseudo;
+    }
+
+
     updateSessionUI();
     checkDailyVictory();
     
@@ -66,6 +72,11 @@ export function initApp() {
 
     state.currentRoomId = null;
     state.locked = false;
+
+    const savedPseudo = localStorage.getItem("arcade_user_pseudo");
+    if (savedPseudo && !state.currentUser) {
+        state.currentUser = savedPseudo;
+    }
     
     updateSessionUI();
     checkDailyVictory();
