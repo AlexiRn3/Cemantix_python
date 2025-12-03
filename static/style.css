@@ -1216,6 +1216,48 @@ input:disabled {
     background: white;
 }
 
+/* Auth Modal Styles */
+.auth-container {
+    max-width: 400px;
+    text-align: center;
+}
+.auth-tabs {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #666;
+}
+.tab-btn.active {
+    color: #4CAF50;
+    border-bottom: 3px solid #4CAF50;
+    font-weight: bold;
+}
+.auth-form input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+.error-msg {
+    color: red;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+.info-text {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 10px;
+}
+
 /* =========================================
    ADAPTATION MOBILE COMPLÈTE (Max 768px)
    ========================================= */

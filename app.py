@@ -10,6 +10,7 @@ import time
 from datetime import date, datetime
 import httpx
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from dotenv import load_dotenv
 from core.models import User
@@ -43,10 +44,19 @@ waiting_duel_room_id: Optional[str] = None
 from core.model_loader import ModelLoader
 from core.rooms import RoomManager, RoomState
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 LOG_FILE_PATH = Path("bugs.log")
 
+class UserAuth(BaseModel):
+    username: str
+    password: str
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -298,28 +308,37 @@ async def surrender_room(room_id: str, payload: SurrenderRequest):
     
 
 @app.post("/auth/register")
-async def register(user: UserCreate, db = Depends(get_db)):
-    # Vérifier si user existe déjà
-    result = await db.execute(select(User).where(User.username == user.username))
+async def register(user_data: UserAuth, db = Depends(get_db)):
+    # Vérifie si l'utilisateur existe déjà
+    result = await db.execute(select(User).where(User.username == user_data.username))
     if result.scalars().first():
-        raise HTTPException(status_code=400, detail="Pseudo déjà pris")
+        raise HTTPException(status_code=400, detail="Ce pseudo est déjà pris.")
     
-    hashed_pw = get_password_hash(user.password)
-    new_user = User(username=user.username, hashed_password=hashed_pw)
+    # Création du compte
+    hashed_pw = get_password_hash(user_data.password)
+    new_user = User(username=user_data.username, hashed_password=hashed_pw)
     db.add(new_user)
-    await db.commit()
-    return {"message": "Compte créé"}
+    try:
+        await db.commit()
+        await db.refresh(new_user)
+        # On connecte directement l'utilisateur après inscription
+        access_token = create_access_token(data={"sub": new_user.username})
+        return {"access_token": access_token, "token_type": "bearer", "username": new_user.username}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/auth/login", response_model=Token)
-async def login(user: UserCreate, db = Depends(get_db)):
-    result = await db.execute(select(User).where(User.username == user.username))
-    db_user = result.scalars().first()
+@app.post("/auth/login")
+async def login(user_data: UserAuth, db = Depends(get_db)):
+    # Recherche de l'utilisateur
+    result = await db.execute(select(User).where(User.username == user_data.username))
+    user = result.scalars().first()
     
-    if not db_user or not verify_password(user.password, db_user.hashed_password):
-        raise HTTPException(status_code=401, detail="Identifiants incorrects")
+    if not user or not verify_password(user_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Pseudo ou mot de passe incorrect.")
     
-    access_token = create_access_token(data={"sub": db_user.username})
-    return {"access_token": access_token, "token_type": "bearer"}
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer", "username": user.username}
 
 @app.post("/rooms/join_random")
 def join_random_duel(payload: CreateRoomRequest):
