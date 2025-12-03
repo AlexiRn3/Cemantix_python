@@ -182,6 +182,5 @@ function logout() {
 
     showSuccessModal("Vous êtes déconnecté.");
     
-    // Optionnel : Recharger la page après un délai si nécessaire
     // setTimeout(() => location.reload(), 1500);
 }
