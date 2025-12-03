@@ -139,7 +139,6 @@ def build_victory_message(room: RoomState, player_name: str):
     }
 
 
-# Ajout du typage de retour explicite -> Dict[str, Any] pour corriger l'erreur Pylance
 def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any]:
     if room.mode == "blitz" and room.end_time > 0:
         if time.time() > room.end_time:
@@ -223,6 +222,7 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "victory": victory and room.mode != "blitz", # Victoire standard seulement si pas blitz
     }
 
+print("Chargement de la route /surrender...")
 @app.post("/rooms/{room_id}/surrender")
 async def surrender_room(room_id: str, payload: SurrenderRequest):
     room = room_manager.get_room(room_id)
