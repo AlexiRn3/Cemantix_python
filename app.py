@@ -158,7 +158,6 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
     feedback = result.get("feedback", "")
     victory = result.get("is_correct", False)
 
-    # --- AJOUT : DÉTECTION DÉFAITE ---
     defeat = False
     target_reveal = ""
     
@@ -282,12 +281,9 @@ async def surrender_room(room_id: str, payload: SurrenderRequest):
 def join_random_duel(payload: CreateRoomRequest):
     global waiting_duel_room_id
     
-    # 1. Vérifier si une salle attend un joueur
     if waiting_duel_room_id:
         room = room_manager.get_room(waiting_duel_room_id)
-        # On vérifie si la room est valide et n'est pas pleine (juste au cas où)
         if room and len(room.players) < 2:
-            # On retourne cette room et on vide la file d'attente
             joined_room_id = waiting_duel_room_id
             waiting_duel_room_id = None
             return {
@@ -297,16 +293,11 @@ def join_random_duel(payload: CreateRoomRequest):
                 "is_new": False
             }
         else:
-            # La room n'est plus valide, on reset
             waiting_duel_room_id = None
 
-    # 2. Sinon, on crée une nouvelle salle
-    # On force les paramètres du duel
     try:
         room = room_manager.create_room("duel", "blitz", payload.player_name)
-        room.duration = 60 # Durée fixe pour le duel
-        # NOTE : On ne définit pas end_time ici, on attend le 2ème joueur
-        
+        room.duration = 60
         waiting_duel_room_id = room.room_id
         
         return {
@@ -316,6 +307,7 @@ def join_random_duel(payload: CreateRoomRequest):
             "is_new": True
         }
     except Exception as exc:
+        print(f"Erreur Duel: {exc}")
         return JSONResponse(status_code=503, content={"message": "Erreur création duel", "detail": str(exc)})
 
 @app.post("/report-bug")

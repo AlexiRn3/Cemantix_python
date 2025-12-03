@@ -6,6 +6,136 @@ import { state } from "./state.js";
 // Variable locale pour stocker le type en cours
 let currentConfigType = "definition";
 
+// Logique pour rejoindre un duel aléatoire
+async function joinRandomDuel() {
+    if (!verifierPseudo()) return; // Vérifie et ouvre la modale login si besoin
+    
+    const pseudo = state.currentUser; 
+    const btn = document.getElementById('btn-random');
+    
+    if(btn) {
+        btn.disabled = true;
+        btn.textContent = "Recherche...";
+    }
+
+    try {
+        const response = await fetch("/rooms/join_random", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ player_name: pseudo })
+        });
+        
+        if (!response.ok) throw new Error("Erreur serveur");
+        
+        const data = await response.json();
+        
+        if (data.room_id) {
+            closeConfigModal();
+            window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(pseudo)}`;
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Impossible de trouver ou créer un duel.");
+        if(btn) {
+            btn.disabled = false;
+            btn.textContent = "🎲 Adversaire Aléatoire";
+        }
+    }
+}
+
+// Fonction principale pour ouvrir la modale de configuration
+export function openGameConfig(type) {
+    if (!verifierPseudo()) return;
+    
+    currentConfigType = type;
+    const modal = document.getElementById('config-modal');
+    const title = document.getElementById('config-modal-title');
+    const desc = document.getElementById('mode-desc');
+    const modeGroup = document.getElementById('mode-group');
+    const durationGroup = document.getElementById('duration-group');
+    const modeSelect = document.getElementById('config-mode');
+    const defaultActions = document.getElementById('config-actions-default');
+
+    if(modal) modal.classList.add('active');
+
+    const existingDuelMenu = document.getElementById('duel-menu-container');
+    if (existingDuelMenu) existingDuelMenu.remove();
+
+    // Reset de l'affichage par défaut
+    if (defaultActions) defaultActions.style.display = 'flex';
+    if (desc) desc.style.display = 'block';
+    if (modeGroup) modeGroup.style.display = 'block';
+
+    // --- CONFIGURATION DUEL ---
+    if (type === 'duel') {
+        if(title) title.textContent = "⚔️ Duel de Concepts";
+
+        // 1. On masque TOUTE l'interface standard (Inputs + Bouton Lancer)
+        [modeGroup, durationGroup, desc, defaultActions].forEach(el => { 
+            if(el) el.style.display = 'none'; 
+        });
+
+        // 2. On injecte le menu spécifique au Duel
+        const duelMenu = document.createElement('div');
+        duelMenu.id = 'duel-menu-container';
+        
+        duelMenu.innerHTML = `
+            <p style="text-align:center; margin-bottom: 30px; color: var(--text-muted); line-height: 1.5;">
+                Affrontez un autre joueur en temps réel.<br>
+                Un thème, 60 secondes, le meilleur mot gagne.
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                <button id="btn-invite" class="btn" style="width: 100%; background: #a29bfe;">🤝 Créer et Inviter un ami</button>
+                <button id="btn-random" class="btn" style="width: 100%; background: #ff7675;">🎲 Adversaire Aléatoire</button>
+                <button id="btn-cancel-duel" class="btn btn-outline" style="width: 100%;">Annuler</button>
+            </div>
+        `;
+
+        // Insertion après le titre
+        title.insertAdjacentElement('afterend', duelMenu);
+
+        // 3. Attachement des événements (SANS setTimeout hasardeux)
+        
+        // Bouton Inviter
+        document.getElementById('btn-invite').onclick = async () => {
+            // On lance la création directement. createGame gère la redirection.
+            // Note: 'duel' type, 'blitz' mode, 60s duration
+            await createGame('duel', 'blitz', 60);
+            closeConfigModal();
+        };
+
+        // Bouton Aléatoire
+        document.getElementById('btn-random').onclick = () => {
+             joinRandomDuel();
+        };
+
+        // Bouton Annuler
+        document.getElementById('btn-cancel-duel').onclick = () => {
+            closeConfigModal();
+        };
+
+        return; 
+    } 
+
+    // --- CONFIGURATION INTRUS ---
+    if (type === 'intruder') {
+        if(title) title.textContent = "L'Intrus : Contre la montre";
+        if(modeGroup) modeGroup.style.display = 'none'; 
+        if(modeSelect) modeSelect.value = 'blitz'; // Force le mode
+        if(durationGroup) durationGroup.style.display = 'block';
+        if(desc) desc.textContent = "Trouvez un maximum d'intrus avant la fin du temps imparti !";
+    } 
+    // --- CONFIGURATION STANDARD (Dictionnario) ---
+    else {
+        if(title) title.textContent = "Config. Dictionnario";
+        if(modeGroup) modeGroup.style.display = 'block';
+        if(modeSelect) modeSelect.value = 'coop';
+        toggleDurationDisplay();
+    }
+}
+
+// Gestion de l'affichage dynamique (Coop vs Blitz) pour Dictionnario
 export function toggleDurationDisplay() {
     const mode = document.getElementById('config-mode').value;
     const durationGroup = document.getElementById('duration-group');
@@ -22,6 +152,7 @@ export function toggleDurationDisplay() {
     }
 }
 
+// Fonction appelée par le bouton "Lancer" (Standard uniquement)
 export async function submitGameConfig() {
     const mode = document.getElementById('config-mode').value;
     let duration = 0;
@@ -34,154 +165,7 @@ export async function submitGameConfig() {
     await createGame(currentConfigType, mode, duration);
 }
 
-async function joinRandomDuel() {
-    const pseudo = state.currentUser; 
-    
-    if (!pseudo) {
-        alert("Vous devez être connecté.");
-        return;
-    }
-
-    const btn = document.getElementById('btn-random');
-    if(btn) {
-        btn.disabled = true;
-        btn.textContent = "Recherche...";
-    }
-
-    try {
-        const response = await fetch("/rooms/join_random", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ player_name: pseudo })
-        });
-        const data = await response.json();
-        
-        if (data.room_id) {
-            closeConfigModal();
-            window.location.href = `/game?room=${data.room_id}&player=${encodeURIComponent(pseudo)}`;
-        }
-    } catch (e) {
-        console.error(e);
-        alert("Erreur lors de la recherche d'adversaire.");
-        const btn = document.getElementById('btn-random');
-        if(btn) {
-            btn.disabled = false;
-            btn.textContent = "🎲 Adversaire Aléatoire";
-        }
-    }
-}
-
-export function openGameConfig(type) {
-    if (!verifierPseudo()) return;
-    
-    currentConfigType = type;
-    const modal = document.getElementById('config-modal');
-    const modeGroup = document.getElementById('mode-group');
-    const durationGroup = document.getElementById('duration-group');
-    const title = document.getElementById('config-modal-title');
-    const desc = document.getElementById('mode-desc');
-    const modeSelect = document.getElementById('config-mode');
-
-    if(modal) modal.classList.add('active');
-
-    const existingDuelMenu = document.getElementById('duel-menu-container');
-    if (existingDuelMenu) existingDuelMenu.remove();
-
-    if (type === 'duel') {
-
-        if(title) title.textContent = "⚔️ Duel de Concepts";
-
-        // On masque les éléments standards
-        [modeGroup, durationGroup, desc].forEach(el => { if(el) el.style.display = 'none'; });
-
-        const duelMenu = document.createElement('div');
-        duelMenu.id = 'duel-menu-container';
-        
-        duelMenu.innerHTML = `
-            <p style="text-align:center; margin-bottom: 20px; color: var(--text-muted);">
-                Affrontez un autre joueur en temps réel.<br>
-                Trouvez le mot le plus proche du thème en 60 secondes.
-            </p>
-            
-            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
-                <button id="btn-invite" class="btn" style="background: #a29bfe;">🤝 Inviter un ami</button>
-                <button id="btn-random" class="btn" style="background: #ff7675;">🎲 Adversaire Aléatoire</button>
-            </div>
-        `;
-
-        title.insertAdjacentElement('afterend', duelMenu);
-
-        const inviteBtn = duelMenu.querySelector('#btn-invite');
-        if (inviteBtn) {
-            inviteBtn.onclick = () => {
-                closeConfigModal();
-                setTimeout(() => createGame('duel', 'blitz', 60), 100);
-            };
-        }
-
-        document.getElementById('btn-random').onclick = () => {
-            if (typeof joinRandomDuel === 'function') {
-                 joinRandomDuel();
-             } else {
-                 console.error("joinRandomDuel n'est pas définie dans ce scope");
-             };
-        };
-
-        const closeBtn = duelMenu.querySelector('.btn-close');
-        if (closeBtn) {
-            closeBtn.onclick = () => {
-                closeConfigModal();
-                setTimeout(() => duelMenu.innerHTML = originalContent, 100);
-            };
-        }
-        return;
-    } 
-
-    if(title) title.textContent = (type === 'intruder') ? "L'Intrus : Contre la montre" : "Config. Dictionnario";
-    
-    if (type === 'intruder') {
-        if(title) title.textContent = "L'Intrus : Contre la montre";
-        if(modeGroup) modeGroup.style.display = 'none'; 
-        if(modeSelect) modeSelect.value = 'blitz';
-        if(durationGroup) durationGroup.style.display = 'block';
-        if(desc) desc.textContent = "Trouvez un maximum d'intrus avant la fin du temps imparti !";
-    } else {
-        if(title) title.textContent = "Config. Dictionnario";
-        if(modeGroup) modeGroup.style.display = 'block';
-        if(modeSelect) modeSelect.value = 'coop';
-        toggleDurationDisplay();
-    }
-}
-
+// Fonction spécifique pour le bouton config Dictionnario du Hub
 export function openDictioConfig() {
-    if (!verifierPseudo()) return;
-    const modal = document.getElementById('config-modal');
-    if(modal) modal.classList.add('active');
-    
-    currentConfigType = "definition"; 
-    
-    // Reset UI
-    const modeSelect = document.getElementById('config-mode');
-    const title = document.getElementById('config-modal-title');
-    const modeGroup = document.getElementById('mode-group');
-    
-    if(title) title.textContent = "Config. Dictionnario";
-    if(modeGroup) modeGroup.style.display = 'block';
-    if(modeSelect) {
-        modeSelect.value = "coop";
-        toggleDurationDisplay();
-    }
-}
-export function launchDictio() {
-    const modeSelect = document.getElementById('dictio-mode').value;
-    let mode = 'coop'; // Mode par défaut
-    let duration = 0;
-
-    if (modeSelect.startsWith('blitz')) {
-        mode = 'blitz';
-        // On extrait le chiffre (3 ou 5) et on convertit en secondes
-        duration = parseInt(modeSelect.split('_')[1]) * 60; 
-    }
-
-    createGame('definition', mode, duration);
+    openGameConfig('definition');
 }
