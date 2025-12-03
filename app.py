@@ -212,14 +212,14 @@ def process_guess(room: RoomState, word: str, player_name: str) -> Dict[str, Any
         "defeat": defeat,
         "target_reveal": target_reveal,
         **result,
-        **blitz_data  # <--- C'EST ICI LA CLÉ : on fusionne les infos de victoire dans le message
+        **blitz_data
     }
     
     return {
         "result": {**result, "progression": progression},
         "guess_payload": guess_payload,
         "scoreboard": build_scoreboard(room),
-        "victory": victory and room.mode != "blitz", # Victoire standard seulement si pas blitz
+        "victory": victory and room.mode != "blitz",
     }
 
 print("Chargement de la route /surrender...")
@@ -361,7 +361,6 @@ def _get_log_content() -> str:
         return "Aucun log disponible pour le moment."
 
     lines = LOG_FILE_PATH.read_text(encoding="utf-8").splitlines()
-    # On limite l'affichage aux 200 dernières lignes pour éviter les fichiers trop volumineux.
     tail = lines[-200:] if len(lines) > 200 else lines
     return "\n".join(tail)
 

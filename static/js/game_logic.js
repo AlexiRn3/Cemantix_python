@@ -107,6 +107,16 @@ export function initGameUI(data) {
     const titleEl = document.getElementById("game-title");
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
 
+    const btnSurrender = document.getElementById("btn-surrender");
+    if (btnSurrender) {
+        // On affiche le bouton UNIQUEMENT si le jeu est 'cemantix'
+        if (data.game_type === "cemantix") {
+            btnSurrender.style.display = "inline-block"; 
+        } else {
+            btnSurrender.style.display = "none";
+        }
+    }
+
     const elementsToHide = ["hangman-area", "game-instruction", "legend-panel", "intruder-area"];
     elementsToHide.forEach(id => {
         const el = document.getElementById(id);
