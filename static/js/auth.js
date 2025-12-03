@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+//COM
 
 // Basculer entre les onglets
 window.switchAuthTab = function(tab) {
