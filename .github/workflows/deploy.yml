@@ -2,7 +2,7 @@ name: Deploy on Push
 
 on:
   push:
-    branches: [ master ]  # Ou 'master', selon votre branche principale
+    branches: [ master ]
 
 jobs:
   deploy:
@@ -11,20 +11,11 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          # On réutilise les secrets que vous avez déjà configurés pour release.yml
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
-            # 1. Aller dans le dossier
             cd /home/dev/production/app/Cemantix_python
-            
-            # 2. Récupérer les modifs
-            git pull origin main
-            
-            # 3. Mettre à jour les dépendances (au cas où requirements.txt change)
-            # Assurez-vous que pip pointe vers votre venv si vous en utilisez un
+            git pull origin master
             pip install -r requirements.txt
-            
-            # 4. Relancer le service pour prendre en compte le nouveau code
             sudo systemctl restart cemantix
