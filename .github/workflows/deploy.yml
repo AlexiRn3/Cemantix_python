@@ -2,7 +2,7 @@ name: Deploy on Push
 
 on:
   push:
-    branches: [ main ]  # Ou 'master', selon votre branche principale
+    branches: [ master ]  # Ou 'master', selon votre branche principale
 
 jobs:
   deploy:
