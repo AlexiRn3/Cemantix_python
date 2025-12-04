@@ -17,11 +17,12 @@ from core.models import User
 from core.database import engine, Base, get_db
 from core.auth import get_password_hash, verify_password, create_access_token
 from sqlalchemy import select
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import update
 import sqlalchemy
 import asyncpg
 from sqlalchemy.ext.asyncio import AsyncSession
+import re
 
 print(f"🔍 VERSION ASYNCPG CHARGÉE : {asyncpg.__version__}")
 print(f"📂 EMPLACEMENT ASYNCPG : {asyncpg.__file__}")
@@ -118,6 +119,26 @@ class UserCreate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class UserAuth(BaseModel):
+    username: str
+    password: str
+
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        v = v.strip()
+        
+        # Règle 1 : Longueur
+        if not (3 <= len(v) <= 20):
+            raise ValueError('Le pseudo doit contenir entre 3 et 20 caractères.')
+        
+        # Règle 2 : Caractères autorisés (Alphanumérique + tiret + underscore)
+        # Regex : ^ (début) [a-zA-Z0-9_-]+ (caractères autorisés) $ (fin)
+        if not re.match(r"^[a-zA-Z0-9_-]+$", v):
+            raise ValueError('Le pseudo ne peut contenir que des lettres, chiffres, tirets (-) et underscores (_). Pas d\'espaces.')
+            
+        return v
 
 class RoomConnectionManager:
     def __init__(self):

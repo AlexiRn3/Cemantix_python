@@ -59,8 +59,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const username = document.getElementById('register-username').value;
-            const password = document.getElementById('register-password').value;
+            const usernameInput = document.getElementById('register-username');
+            const passwordInput = document.getElementById('register-password');
+            const errorElem = document.getElementById('register-error');
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            // --- DEBUT VALIDATION STRICTE ---
+            const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+            
+            if (!usernameRegex.test(username)) {
+                errorElem.textContent = "Pseudo invalide : 3-20 caractères, lettres, chiffres, - et _ uniquement.";
+                errorElem.style.color = "#ff6b6b";
+                
+                // Petite animation d'erreur
+                usernameInput.classList.add('error-shake');
+                setTimeout(() => usernameInput.classList.remove('error-shake'), 500);
+                return; // On arrête tout, pas d'envoi au serveur
+            }
             await performAuth('/auth/register', { username, password }, 'register-error');
         });
     }
