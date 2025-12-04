@@ -2,46 +2,90 @@ import { showModal, closeModal } from "./ui.js";
 import { state } from "./state.js";
 
 // C'est cette fonction qui est appelée quand on clique sur le bouton "Connexion"
-export function openLoginModal() {
-    // 1. On cherche d'abord la NOUVELLE fenêtre de connexion (celle du Hub)
+export async function openLoginModal() {
+    // 1. Si on est sur le Hub (pas en jeu) et pas connecté -> Ouvrir le modal d'auth classique
     const authModal = document.getElementById('auth-modal');
-    
-    if (authModal) {
-        // Si elle existe, on l'affiche simplement !
+    if (authModal && !state.currentUser) {
         authModal.classList.add('active');
-        
-        // On remet l'onglet "Connexion" par défaut si la fonction existe
-        if (window.switchAuthTab) {
-            window.switchAuthTab('login');
-        }
-        return; // On s'arrête là, c'est fini.
+        if (window.switchAuthTab) window.switchAuthTab('login');
+        return;
     }
 
-    // 2. Si on n'a pas trouvé #auth-modal, c'est qu'on est probablement EN JEU.
-    // On utilise alors l'ancien système pour afficher le pseudo verrouillé.
+    // 2. Si on est connecté (Hub ou Jeu), on affiche le PROFIL STATISTIQUES
     const overlay = document.getElementById('modal-overlay');
     const titleEl = document.getElementById('modal-title');
     const contentEl = document.getElementById('modal-content');
-    const actionsEl = document.getElementById('modal-actions') || document.querySelector('.modal-actions');
+    const actionsEl = document.getElementById('modal-actions');
 
-    if (overlay && actionsEl) {
-        const htmlContent = `
-            <div style="margin-bottom: 20px;">
-                <p>Vous êtes connecté en tant que :</p>
-                <input type="text" value="${state.currentUser || 'Invité'}" disabled style="margin-top:15px; text-align:center; opacity:0.7;">
-                <p class="locked-message">🔒 Pseudo verrouillé en partie.</p>
-            </div>`;
-            
-        const buttonsHtml = `
-            <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
-                <button class="btn" onclick="closeModal()">Fermer</button>
-                <button class="btn btn-danger" onclick="logout()">Se déconnecter & Quitter</button>
-            </div>`;
+    if (!overlay) return;
 
-        titleEl.textContent = "PROFIL";
-        contentEl.innerHTML = htmlContent;
+    // Affiche un chargement
+    titleEl.textContent = `PROFIL DE ${state.currentUser.toUpperCase()}`;
+    contentEl.innerHTML = '<div style="padding:20px;">Chargement des statistiques...</div>';
+    overlay.classList.add('active');
+
+    try {
+        // Appel API
+        const res = await fetch(`/users/${state.currentUser}/stats`);
+        
+        let statsHtml = '';
+        
+        if (res.ok) {
+            const data = await res.json();
+            statsHtml = `
+                <div class="stats-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; text-align:center; margin-bottom:20px;">
+                    <div style="background:#f8f9fa; padding:15px; border-radius:12px; border:1px solid #eee;">
+                        <div style="font-size:2rem;">🎮</div>
+                        <div style="font-weight:bold; font-size:1.2rem; color:var(--text-main);">${data.games_played}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Parties Jouées</div>
+                    </div>
+                    
+                    <div style="background:#fff3cd; padding:15px; border-radius:12px; border:1px solid #ffeeba;">
+                        <div style="font-size:2rem;">📅</div>
+                        <div style="font-weight:bold; font-size:1.2rem; color:#856404;">${data.daily_wins}</div>
+                        <div style="font-size:0.8rem; color:#856404;">Défis Validés</div>
+                    </div>
+
+                    <div style="background:#d4edda; padding:15px; border-radius:12px; border:1px solid #c3e6cb;">
+                        <div style="font-size:2rem;">🔥</div>
+                        <div style="font-weight:bold; font-size:1.2rem; color:#155724;">${data.cemantix_wins}</div>
+                        <div style="font-size:0.8rem; color:#155724;">Victoires Cémantix</div>
+                    </div>
+
+                    <div style="background:#f8d7da; padding:15px; border-radius:12px; border:1px solid #f5c6cb;">
+                        <div style="font-size:2rem;">🏳️</div>
+                        <div style="font-weight:bold; font-size:1.2rem; color:#721c24;">${data.cemantix_surrenders}</div>
+                        <div style="font-size:0.8rem; color:#721c24;">Abandons</div>
+                    </div>
+                </div>
+                <div style="text-align:center; font-size:0.9rem; color:var(--text-muted); font-style:italic;">
+                    Victoires Pendu : ${data.hangman_wins}
+                </div>
+            `;
+        } else {
+            statsHtml = `<p style="color:red;">Impossible de charger les statistiques.</p>`;
+        }
+
+        contentEl.innerHTML = statsHtml;
+
+        const isInGame = window.location.pathname.includes("/game");
+        
+        let buttonsHtml = '';
+        if (isInGame) {
+             buttonsHtml = `<button class="btn" onclick="closeModal()">Fermer</button>`;
+        } else {
+             buttonsHtml = `
+                <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+                    <button class="btn" onclick="closeModal()">Fermer</button>
+                    <button class="btn btn-danger" onclick="logout()">Se déconnecter</button>
+                </div>`;
+        }
+        
         actionsEl.innerHTML = buttonsHtml;
-        overlay.classList.add('active');
+
+    } catch (e) {
+        console.error(e);
+        contentEl.innerHTML = '<p>Erreur réseau.</p>';
     }
 }
 

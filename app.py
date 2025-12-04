@@ -18,8 +18,10 @@ from core.database import engine, Base, get_db
 from core.auth import get_password_hash, verify_password, create_access_token
 from sqlalchemy import select
 from pydantic import BaseModel
+from sqlalchemy import update
 import sqlalchemy
 import asyncpg
+from sqlalchemy.ext.asyncio import AsyncSession
 
 print(f"🔍 VERSION ASYNCPG CHARGÉE : {asyncpg.__version__}")
 print(f"📂 EMPLACEMENT ASYNCPG : {asyncpg.__file__}")
@@ -256,9 +258,27 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+
+@app.get("/users/{username}/stats")
+async def get_user_stats(username: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalars().first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+        
+    return {
+        "username": user.username,
+        "games_played": user.games_played,
+        "cemantix_wins": user.cemantix_wins,
+        "cemantix_surrenders": user.cemantix_surrenders,
+        "hangman_wins": user.hangman_wins,
+        "daily_wins": user.daily_challenges_validated
+    }
+
 print("Chargement de la route /surrender...")
 @app.post("/rooms/{room_id}/surrender")
-async def surrender_room(room_id: str, payload: SurrenderRequest):
+async def surrender_room(room_id: str, payload: SurrenderRequest, db: AsyncSession = Depends(get_db)):    
     room = room_manager.get_room(room_id)
     if not room:
         return JSONResponse(status_code=404, content={"error": "room_not_found"})
@@ -291,6 +311,16 @@ async def surrender_room(room_id: str, payload: SurrenderRequest):
     vote_count = len(room.surrender_votes)
 
     if vote_count >= active_count:
+
+        for p_name in room.active_players:
+            res = await db.execute(select(User).where(User.username == p_name))
+            u = res.scalars().first()
+            if u:
+                u.games_played += 1
+                if room.game_type == "cemantix":
+                    u.cemantix_surrenders += 1
+            await db.commit()
+
         target_word = getattr(room.engine, "target_word", "Inconnu")
         room.locked = True
         room.surrender_votes.clear()
@@ -497,7 +527,8 @@ def create_room(payload: CreateRoomRequest):
 
 
 @app.post("/rooms/{room_id}/guess")
-async def guess(room_id: str, payload: GuessRequest):
+@app.post("/rooms/{room_id}/guess")
+async def guess(room_id: str, payload: GuessRequest, db: AsyncSession = Depends(get_db)):
     room = room_manager.get_room(room_id)
     if not room:
         return JSONResponse(status_code=404, content={"error": "room_not_found", "message": "Room inconnue"})
@@ -507,11 +538,32 @@ async def guess(room_id: str, payload: GuessRequest):
     if result_data.get("error"):
         return JSONResponse(status_code=400, content=result_data)
 
-    # Ici result_data est garanti d'être le dictionnaire de succès grâce au check précédent
+    # Broadcast du résultat
     await connections.broadcast(room_id, result_data["guess_payload"])
     
     victory = result_data.get("victory", False)
     
+    # --- LOGIQUE DE SAUVEGARDE DB ---
+    if victory:
+        # On cherche l'utilisateur dans la DB
+        result = await db.execute(select(User).where(User.username == payload.player_name))
+        user = result.scalars().first()
+        
+        if user:
+            user.games_played += 1
+            
+            if room.mode == "daily":
+                user.daily_challenges_validated += 1
+            
+            if room.game_type == "cemantix":
+                user.cemantix_wins += 1
+            elif room.game_type == "hangman":
+                user.hangman_wins += 1
+            
+            await db.commit()
+            print(f"Stats mises à jour pour {user.username}")
+    # -------------------------------
+
     # Mise à jour du scoreboard pour tout le monde
     await connections.broadcast(
         room_id,
