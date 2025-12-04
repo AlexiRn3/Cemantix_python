@@ -17,7 +17,7 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
             # 1. Aller dans le dossier
-            cd ~/cemantix
+            cd /home/dev/production/app/Cemantix_python
             
             # 2. Récupérer les modifs
             git pull origin main
