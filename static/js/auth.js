@@ -211,8 +211,6 @@ function logout() {
     }
 
     showSuccessModal("Vous êtes déconnecté.");
-
-    print('rechargement de la page après déconnexion');
     
     setTimeout(() => location.reload(), 0);
 }
