@@ -202,6 +202,7 @@ async function performAuth(endpoint, data, errorId) {
             btn.textContent = originalText;
         }
     }
+    setTimeout(() => location.reload(), 0);
 }
 
 function updateProfileUI(username) {
