@@ -4,10 +4,8 @@ import { showModal } from "./ui.js";
 import { openLoginModal } from "./modal.js"; 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. Récupération des éléments DOM ---
     const authModal = document.getElementById('auth-modal');
     const btnProfile = document.getElementById('btn-profile');
-    
     const logoutModal = document.getElementById('logout-modal');
     const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
     const cancelLogoutBtn = document.getElementById('cancel-logout-btn');
@@ -19,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProfileUI(username);
     }
 
+    // Vérification au chargement de la page
     if (localStorage.getItem("is_admin") === "true") {
         injectAdminButton();
     }
@@ -32,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (confirmLogoutBtn) {
         confirmLogoutBtn.addEventListener('click', () => {
-            logout(); // Action de déconnexion
+            logout();
             if (logoutModal) logoutModal.classList.remove('active');
         });
     }
@@ -60,47 +59,42 @@ document.addEventListener('DOMContentLoaded', () => {
             const usernameInput = document.getElementById('register-username');
             const passwordInput = document.getElementById('register-password');
             const errorElem = document.getElementById('register-error');
-            
             const username = usernameInput.value.trim();
             const password = passwordInput.value;
-
             const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
             
             if (!usernameRegex.test(username)) {
                 errorElem.textContent = "Pseudo invalide : 3-20 caractères, lettres, chiffres, - et _ uniquement.";
                 errorElem.style.color = "#ff6b6b";
-                
-                // Petite animation d'erreur
                 usernameInput.classList.add('error-shake');
                 setTimeout(() => usernameInput.classList.remove('error-shake'), 500);
-                return; // On arrête tout, pas d'envoi au serveur
+                return; 
             }
             await performAuth('/auth/register', { username, password }, 'register-error');
         });
     }
 });
 
+// --- FONCTION D'INJECTION CORRIGÉE ---
 function injectAdminButton() {
-    if (localStorage.getItem("is_admin") !== "true") return;
-    if (document.getElementById('admin-btn-panel')) return;
+    if (document.getElementById('admin-btn-panel')) return; // Déjà là ?
 
+    // On cible .user-controls qui existe sur TOUTES les pages (Hub et Jeu)
     const target = document.querySelector('.user-controls'); 
     
     if (target) {
         const btn = document.createElement('button');
         btn.id = 'admin-btn-panel';
-        btn.className = 'btn btn-outline'; 
-        btn.style.marginRight = '10px';
-        btn.innerHTML = '🛠️';
-        btn.title = "Panel Admin";
-        
+        btn.className = 'btn btn-outline'; // Style existant
+        btn.style.marginRight = '10px';    // Espace avec le bouton profil
+        btn.innerHTML = '🛠️ Admin';       // Icône + Texte
         btn.onclick = () => window.location.href = '/static/admin_panel.html';
-    
+        
+        // On l'ajoute AVANT le bouton de profil (premier élément)
         target.insertBefore(btn, target.firstChild);
     }
 }
 
-// Basculer entre les onglets
 window.switchAuthTab = function(tab) {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
@@ -122,13 +116,8 @@ window.switchAuthTab = function(tab) {
 
 function showSuccessModal(message) {
     const modal = document.getElementById('success-modal');
-    // Création dynamique de la modale si elle n'existe pas (fallback)
-    if (!modal) {
-        alert(message);
-        return;
-    }
+    if (!modal) { alert(message); return; }
     
-    // Si la modale existe mais n'a pas la structure attendue, on adapte
     let msgElement = document.getElementById('success-message');
     if (!msgElement && modal) {
         modal.innerHTML = `<div class="modal-content" style="background:white; padding:20px; border-radius:10px; text-align:center;">
@@ -139,12 +128,10 @@ function showSuccessModal(message) {
     }
 
     modal.classList.add('active');
-    setTimeout(() => {
-        modal.classList.remove('active');
-    }, 2000);
+    setTimeout(() => { modal.classList.remove('active'); }, 2000);
 }
 
-// Exécuter l'appel API (Login ou Register)
+// --- FONCTION DE CONNEXION CORRIGÉE ---
 async function performAuth(endpoint, data, errorId) {
     const errorElem = document.getElementById(errorId);
     if(errorElem) errorElem.textContent = "";
@@ -165,7 +152,7 @@ async function performAuth(endpoint, data, errorId) {
 
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Le serveur est indisponible (Erreur 503). Vérifiez les logs Python.");
+            throw new Error("Le serveur est indisponible (Erreur 503).");
         }
 
         const result = await response.json();
@@ -175,25 +162,25 @@ async function performAuth(endpoint, data, errorId) {
         }
 
         localStorage.setItem('access_token', result.access_token);
-        
         setCurrentUser(result.username); 
 
+        // --- CORRECTION DE LA DÉTECTION ---
         if (result.is_admin === true) {
             console.log("Admin détecté !");
             localStorage.setItem("is_admin", "true");
-            if (typeof injectAdminButton === "function") injectAdminButton();
+            injectAdminButton();
         } else {
             localStorage.removeItem("is_admin");
         }
         
-        // Fermer la modale d'auth
         const authModal = document.getElementById('auth-modal');
         if(authModal) authModal.classList.remove('active');
         
-        const msg = endpoint.includes('register') ? "Compte créé avec succès !" : "Connexion réussie !";
+        const msg = endpoint.includes('register') ? "Compte créé !" : "Connexion réussie !";
         showSuccessModal(msg);
 
-        setTimeout(() => location.reload(), 0);
+        // --- RECHARGEMENT UNIQUEMENT EN CAS DE SUCCÈS ---
+        setTimeout(() => location.reload(), 500);
 
     } catch (err) {
         console.error(err);
@@ -203,6 +190,7 @@ async function performAuth(endpoint, data, errorId) {
         } else {
             alert(err.message);
         }
+        // Pas de reload ici pour laisser l'utilisateur lire l'erreur
     } finally {
         if(btn) {
             btn.disabled = false;
@@ -226,6 +214,7 @@ function updateProfileUI(username) {
 function logout() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('arcade_user_pseudo');
+    localStorage.removeItem('is_admin'); // On nettoie le statut admin aussi
     
     const display = document.getElementById('profile-name-display');
     const btn = document.getElementById('btn-profile');
@@ -238,6 +227,5 @@ function logout() {
     }
 
     showSuccessModal("Vous êtes déconnecté.");
-    
-    setTimeout(() => location.reload(), 0);
+    setTimeout(() => location.reload(), 500);
 }
