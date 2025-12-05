@@ -82,16 +82,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function injectAdminButton() {
-    if (!localStorage.getItem("is_admin")) return;
+    // Si déjà injecté, on arrête
+    if (document.getElementById('admin-btn-panel')) return;
 
-    const nav = document.querySelector('nav'); // Ou user-controls
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-outline'; // Style existant
-    btn.innerText = '🛠️ Admin Panel';
-    btn.style.marginLeft = '10px';
-    btn.onclick = () => window.location.href = '/admin_panel.html';
+    // Cible : la zone utilisateur en haut à droite (présente sur Hub ET Jeu)
+    const target = document.querySelector('.user-controls'); 
     
-    if(nav) nav.appendChild(btn);
+    if (target) {
+        const btn = document.createElement('button');
+        btn.id = 'admin-btn-panel';
+        // On reprend le style du bouton profil pour être cohérent
+        btn.className = 'profile-btn'; 
+        btn.style.marginRight = '10px'; // Un peu d'espace avec le bouton profil
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        btn.innerHTML = '<span style="font-size:1.2rem">🛠️</span>';
+        btn.title = "Panel Admin";
+        
+        btn.onclick = () => window.location.href = '/admin_panel.html';
+        
+        // On l'ajoute au début de la div (à gauche du bouton profil)
+        target.insertBefore(btn, target.firstChild);
+    }
 }
 
 // Basculer entre les onglets
