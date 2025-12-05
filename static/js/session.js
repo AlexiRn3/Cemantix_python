@@ -53,11 +53,11 @@ export function verifierPseudo() {
     return true;
 }
 
-// C'est cette fonction qui est appelée par le bouton "Se déconnecter"
 export function logout() {
     // 1. Nettoyage complet
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem('access_token'); // Ajout pour supprimer le token de connexion
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('is_admin');
     state.currentUser = "";
     
     updateSessionUI();

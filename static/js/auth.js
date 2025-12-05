@@ -229,25 +229,3 @@ function updateProfileUI(username) {
         if(avatar) avatar.textContent = "😎";
     }
 }
-
-function logout() {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('arcade_user_pseudo');
-    localStorage.removeItem('is_admin');
-    
-    const display = document.getElementById('profile-name-display');
-    const btn = document.getElementById('btn-profile');
-    
-    if (display) display.textContent = "Connexion";
-    if (btn) {
-        btn.classList.remove('logged-in');
-        const avatar = btn.querySelector('.avatar');
-        if(avatar) avatar.textContent = "👤";
-    }
-
-    showSuccessModal("Vous êtes déconnecté.");
-    
-    setTimeout(() => {
-        window.location.reload();
-    }, 500);
-}
