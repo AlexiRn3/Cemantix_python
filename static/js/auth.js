@@ -90,7 +90,6 @@ function injectAdminButton() {
         btn.innerHTML = '🛠️ Admin';       // Icône + Texte
         btn.onclick = () => window.location.href = '/static/admin_panel.html';
         
-        // On l'ajoute AVANT le bouton de profil (premier élément)
         target.insertBefore(btn, target.firstChild);
     }
 }
