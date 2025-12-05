@@ -3,12 +3,11 @@ import { verifierPseudo } from "./session.js";
 import { closeConfigModal } from "./modal.js";
 import { state } from "./state.js";
 
-// Variable locale pour stocker le type en cours
 let currentConfigType = "definition";
 
-// Logique pour rejoindre un duel aléatoire
 async function joinRandomDuel() {
-    if (!verifierPseudo()) return; // Vérifie et ouvre la modale login si besoin
+    console.log("🎲 Recherche d'adversaire...");
+    if (!verifierPseudo()) return;
     
     const pseudo = state.currentUser; 
     const btn = document.getElementById('btn-random');
@@ -43,7 +42,6 @@ async function joinRandomDuel() {
     }
 }
 
-// Fonction principale pour ouvrir la modale de configuration
 export function openGameConfig(type) {
     if (!verifierPseudo()) return;
     
@@ -58,75 +56,68 @@ export function openGameConfig(type) {
 
     if(modal) modal.classList.add('active');
 
+    // Nettoyage ancien menu duel si présent
     const existingDuelMenu = document.getElementById('duel-menu-container');
     if (existingDuelMenu) existingDuelMenu.remove();
 
-    // Reset de l'affichage par défaut
+    // Reset affichage standard
     if (defaultActions) defaultActions.style.display = 'flex';
     if (desc) desc.style.display = 'block';
     if (modeGroup) modeGroup.style.display = 'block';
 
-    // --- CONFIGURATION DUEL ---
+    // --- CONFIG DUEL ---
     if (type === 'duel') {
         if(title) title.textContent = "⚔️ Duel de Concepts";
 
-        // 1. On masque TOUTE l'interface standard (Inputs + Bouton Lancer)
+        // Masquer l'interface standard
         [modeGroup, durationGroup, desc, defaultActions].forEach(el => { 
             if(el) el.style.display = 'none'; 
         });
 
-        // 2. On injecte le menu spécifique au Duel
+        // Injecter le menu Duel
         const duelMenu = document.createElement('div');
         duelMenu.id = 'duel-menu-container';
-        
         duelMenu.innerHTML = `
-            <p style="text-align:center; margin-bottom: 30px; color: var(--text-muted); line-height: 1.5;">
-                Affrontez un autre joueur en temps réel.<br>
-                Un thème, 60 secondes, le meilleur mot gagne.
+            <p style="text-align:center; margin-bottom: 30px; color: var(--text-muted);">
+                Affrontez un joueur en temps réel (60s).<br>
+                Le mot le plus proche gagne !
             </p>
-            
-            <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
-                <button id="btn-invite" class="btn" style="width: 100%; background: #a29bfe;">🤝 Créer et Inviter un ami</button>
-                <button id="btn-random" class="btn" style="width: 100%; background: #ff7675;">🎲 Adversaire Aléatoire</button>
-                <button id="btn-cancel-duel" class="btn btn-outline" style="width: 100%;">Annuler</button>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <button id="btn-invite" class="btn" style="background: #a29bfe;">🤝 Créer et Inviter</button>
+                <button id="btn-random" class="btn" style="background: #ff7675;">🎲 Adversaire Aléatoire</button>
+                <button id="btn-cancel-duel" class="btn btn-outline">Annuler</button>
             </div>
         `;
 
-        // Insertion après le titre
         title.insertAdjacentElement('afterend', duelMenu);
 
-        // 3. Attachement des événements (SANS setTimeout hasardeux)
-        
-        // Bouton Inviter
+        // Attacher les événements
         document.getElementById('btn-invite').onclick = async () => {
-            // On lance la création directement. createGame gère la redirection.
-            // Note: 'duel' type, 'blitz' mode, 60s duration
+            console.log("🤝 Création Duel (Invitation)...");
+            // Force 60s et mode blitz pour le duel
             await createGame('duel', 'blitz', 60);
             closeConfigModal();
         };
 
-        // Bouton Aléatoire
         document.getElementById('btn-random').onclick = () => {
              joinRandomDuel();
         };
 
-        // Bouton Annuler
         document.getElementById('btn-cancel-duel').onclick = () => {
             closeConfigModal();
         };
-
         return; 
     } 
 
-    // --- CONFIGURATION INTRUS ---
+    // --- CONFIG INTRUS ---
     if (type === 'intruder') {
         if(title) title.textContent = "L'Intrus : Contre la montre";
         if(modeGroup) modeGroup.style.display = 'none'; 
-        if(modeSelect) modeSelect.value = 'blitz'; // Force le mode
+        if(modeSelect) modeSelect.value = 'blitz';
         if(durationGroup) durationGroup.style.display = 'block';
-        if(desc) desc.textContent = "Trouvez un maximum d'intrus avant la fin du temps imparti !";
+        if(desc) desc.textContent = "Trouvez l'intrus avant la fin du temps !";
     } 
-    // --- CONFIGURATION STANDARD (Dictionnario) ---
+    // --- CONFIG STANDARD ---
     else {
         if(title) title.textContent = "Config. Dictionnario";
         if(modeGroup) modeGroup.style.display = 'block';
@@ -135,24 +126,15 @@ export function openGameConfig(type) {
     }
 }
 
-// Gestion de l'affichage dynamique (Coop vs Blitz) pour Dictionnario
 export function toggleDurationDisplay() {
     const mode = document.getElementById('config-mode').value;
     const durationGroup = document.getElementById('duration-group');
-    const desc = document.getElementById('mode-desc');
-
-    if (currentConfigType === 'definition') {
-        if (mode === 'blitz') {
-            if(durationGroup) durationGroup.style.display = 'block';
-            if(desc) desc.textContent = "Trouvez un maximum de mots dans le temps imparti.";
-        } else {
-            if(durationGroup) durationGroup.style.display = 'none';
-            if(desc) desc.textContent = "Trouvez un mot unique ensemble sans limite de temps.";
-        }
+    
+    if (currentConfigType === 'definition' && durationGroup) {
+        durationGroup.style.display = (mode === 'blitz') ? 'block' : 'none';
     }
 }
 
-// Fonction appelée par le bouton "Lancer" (Standard uniquement)
 export async function submitGameConfig() {
     const mode = document.getElementById('config-mode').value;
     let duration = 0;
@@ -160,12 +142,10 @@ export async function submitGameConfig() {
     if (mode === 'blitz') {
         duration = parseInt(document.getElementById('config-duration').value);
     }
-
     closeConfigModal();
     await createGame(currentConfigType, mode, duration);
 }
 
-// Fonction spécifique pour le bouton config Dictionnario du Hub
 export function openDictioConfig() {
     openGameConfig('definition');
 }

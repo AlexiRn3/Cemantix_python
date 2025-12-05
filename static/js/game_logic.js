@@ -106,6 +106,7 @@ export function initGameUI(data) {
     const titles = { "cemantix": "Cémantix", "definition": "Dictionnario", "intruder": "L'Intrus", "hangman": "Pendu", "duel": "Duel de Concepts" };
     const titleEl = document.getElementById("game-title");
     if (titleEl) titleEl.textContent = titles[data.game_type] || "Jeu";
+    if (titleEl) titleEl.textContent = (data.game_type === "duel") ? "Duel de Concepts" : "Jeu";
 
     const btnSurrender = document.getElementById("btn-surrender");
     if (btnSurrender) {
@@ -153,29 +154,27 @@ export function initGameUI(data) {
         }
     } else if (data.game_type === "duel") {
         const box = document.getElementById("game-instruction");
-        if(box) {
-            box.style.display = "block";
-            if (data.end_time === 0 || !data.end_time) {
-                document.getElementById("definition-text").innerHTML = `
-                    <div style="animation: pulse 1.5s infinite;">⏳ Recherche d'adversaire...</div>
-                `;
-                document.getElementById("hint-text").innerHTML = `
-                    <button class="btn btn-danger" onclick="window.location.href='/'" style="margin-top:20px; padding: 10px 20px; font-size: 1rem;">
-                        Annuler la recherche
-                    </button>
-                `;
-                if(form) form.style.display = "none";
+        if(box) box.style.display = "block";
 
-            } else {
-                document.getElementById("definition-text").innerHTML = `Thème : <strong style="color:var(--accent); text-transform:uppercase; font-size: 2.5rem;">${data.public_state.theme}</strong>`;
-                document.getElementById("hint-text").textContent = "Trouvez le mot le plus proche !";
-                
-                // ON AFFICHE LE FORMULAIRE ICI
-                if(form) {
-                    form.style.display = "flex";
-                    const input = form.querySelector('input');
-                    if(input) input.focus();
-                }
+        if (data.end_time === 0 || !data.end_time) {
+            document.getElementById("definition-text").innerHTML = `
+                <div style="animation: pulse 1.5s infinite;">⏳ Recherche d'adversaire...</div>
+            `;
+            document.getElementById("hint-text").innerHTML = `
+                <button class="btn btn-danger" onclick="window.location.href='/'" style="margin-top:20px; padding: 10px 20px; font-size: 1rem;">
+                    Annuler la recherche
+                </button>
+            `;
+            if(form) form.style.display = "none";
+
+        } else {
+            document.getElementById("definition-text").innerHTML = `Thème : <strong style="color:var(--accent); text-transform:uppercase; font-size: 2.5rem;">${data.public_state.theme}</strong>`;
+            document.getElementById("hint-text").textContent = "Trouvez le mot le plus proche !";
+            
+            if(form) {
+                form.style.display = "flex";
+                const input = form.querySelector('input');
+                if(input) input.focus();
             }
         }
         const form = document.getElementById("guess-form");
