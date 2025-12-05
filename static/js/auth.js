@@ -145,7 +145,6 @@ function showSuccessModal(message) {
     }, 2000);
 }
 
-// Exécuter l'appel API (Login ou Register)
 async function performAuth(endpoint, data, errorId) {
     console.log(`Authentification vers ${endpoint}...`);
     const errorElem = document.getElementById(errorId);
@@ -199,6 +198,7 @@ async function performAuth(endpoint, data, errorId) {
         if(authModal) authModal.classList.remove('active');
         
         const msg = endpoint.includes('register') ? "Compte créé !" : "Connexion réussie !";
+        alert('Test connexion OK')
         showSuccessModal(msg);
 
         window.location.reload();
