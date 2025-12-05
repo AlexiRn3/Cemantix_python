@@ -123,7 +123,7 @@ class RoomState:
         """Enregistre un vote. Retourne True si tout le monde a voté."""
         self.reset_votes.add(player_name)
         # On compare le nombre de votes au nombre de joueurs actuels
-        return len(self.reset_votes) >= len(self.players)
+        return len(self.reset_votes) >= len(self.active_players)
 
     # AJOUT : Réinitialisation de la partie
     def reset_game(self):

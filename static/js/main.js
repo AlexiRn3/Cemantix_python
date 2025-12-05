@@ -320,21 +320,6 @@ window.initApp = initApp;
 document.addEventListener("DOMContentLoaded", initApp);
 const btnJoin = document.getElementById('btn-join');
 
-if (btnJoin) {
-    btnJoin.onclick = () => {
-        if (!verifierPseudo()) return;
-        
-        const nameInput = document.getElementById('player-name');
-        let name = nameInput ? nameInput.value : state.currentUser;
-        if(!name && state.currentUser) name = state.currentUser;
-
-        const room = document.getElementById('room-id').value;
-        if(!name || !room) return showModal("Données Manquantes", "Pseudo et ID requis.");
-        
-        window.location.href = `/game?room=${room}&player=${encodeURIComponent(name)}`;
-    };
-}
-
 
 window.createGame = createGame;
 window.openGameConfig = openGameConfig;
