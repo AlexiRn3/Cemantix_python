@@ -124,13 +124,12 @@ export function initGameUI(data) {
     });
     
     const form = document.getElementById("guess-form");
-    if(form) form.style.display = "flex";
 
     const gameLayout = document.querySelector(".game-layout");
     if(gameLayout) gameLayout.classList.remove("intruder-focus");
 
     if (data.game_type === "hangman") {
-        if(form) form.style.display = "none";
+        if(form) form.style.display = "flex";
         if(gameLayout) gameLayout.classList.add("intruder-focus");
         const area = document.getElementById("hangman-area");
         if(area) {
@@ -138,7 +137,7 @@ export function initGameUI(data) {
             renderHangmanUI(data.public_state);
         }
     } else if (data.game_type === "intruder") {
-        if(form) form.style.display = "none";
+        if(form) form.style.display = "flex";
         if(gameLayout) gameLayout.classList.add("intruder-focus");
         const area = document.getElementById("intruder-area");
         if(area) {
@@ -156,7 +155,7 @@ export function initGameUI(data) {
         const box = document.getElementById("game-instruction");
         if(box) {
             box.style.display = "block";
-            if (data.end_time === 0) {
+            if (data.end_time === 0 || !data.end_time) {
                 document.getElementById("definition-text").innerHTML = `
                     <div style="animation: pulse 1.5s infinite;">⏳ Recherche d'adversaire...</div>
                 `;
@@ -171,6 +170,7 @@ export function initGameUI(data) {
                 document.getElementById("definition-text").innerHTML = `Thème : <strong style="color:var(--accent); text-transform:uppercase; font-size: 2.5rem;">${data.public_state.theme}</strong>`;
                 document.getElementById("hint-text").textContent = "Trouvez le mot le plus proche !";
                 
+                // ON AFFICHE LE FORMULAIRE ICI
                 if(form) {
                     form.style.display = "flex";
                     const input = form.querySelector('input');
@@ -178,7 +178,7 @@ export function initGameUI(data) {
                 }
             }
         }
-                const form = document.getElementById("guess-form");
+        const form = document.getElementById("guess-form");
         if(form) form.style.display = "flex";
     } else {
         const legend = document.getElementById("legend-panel");
