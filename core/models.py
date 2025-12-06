@@ -1,5 +1,5 @@
 # core/models.py
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, JSON
 from core.database import Base
 
 class User(Base):
@@ -23,3 +23,5 @@ class User(Base):
     daily_challenges_validated = Column(Integer, default=0)
 
     is_admin = Column(Boolean, default=False)
+
+    tycoon_save = Column(JSON, default={})
