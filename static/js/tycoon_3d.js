@@ -16,6 +16,14 @@ const CONFIG = {
     }
 };
 
+const ASSETS = {
+    stagiaire: '/static/models/desk.glb',      // Un bureau
+    correcteur: '/static/models/computer.glb', // Un ordi
+    imprimerie: '/static/models/printer.glb',  // Une imprimante
+    serveur: '/static/models/server_rack.glb', // Un rack serveur
+    ia: '/static/models/quantum_computer.glb'  // Une grosse machine
+};
+
 let gameState = {
     currency: 0,
     inventory: { stagiaire: 0, correcteur: 0, imprimerie: 0, serveur: 0, ia: 0 },
@@ -44,8 +52,16 @@ controls.minDistance = 3;
 controls.maxDistance = 20;
 
 // Éclairage
-const ambientLight = new THREE.AmbientLight(0x404040, 2); // Lumière douce
-scene.add(ambientLight);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5); // Ciel blanc, sol gris
+hemiLight.position.set(0, 20, 0);
+scene.add(hemiLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 3);
+dirLight.position.set(10, 20, 10);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+scene.add(dirLight);
 
 const pointLight = new THREE.PointLight(0xffffff, 2, 50);
 pointLight.position.set(0, 10, 0);
@@ -62,6 +78,43 @@ const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.rotation.x = -Math.PI / 2;
 plane.receiveShadow = true;
 scene.add(plane);
+
+const loader = new GLTFLoader();
+const loadedModels = {}; // Cache pour stocker les modèles chargés
+
+// Fonction de préchargement (se lance au début)
+async function loadAllModels() {
+    const promises = [];
+    
+    for (const [key, url] of Object.entries(ASSETS)) {
+        promises.push(new Promise((resolve) => {
+            loader.load(url, (gltf) => {
+                const model = gltf.scene;
+                
+                // Optimisation : Activer les ombres sur tout le modèle
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                // Ajustement d'échelle (souvent les modèles sont trop gros/petits)
+                // Tu devras peut-être ajuster ce chiffre selon tes modèles
+                model.scale.set(0.5, 0.5, 0.5); 
+                
+                loadedModels[key] = model;
+                resolve();
+            }, undefined, (error) => {
+                console.error(`Erreur chargement ${key}:`, error);
+                resolve(); // On resolve quand même pour pas bloquer
+            });
+        }));
+    }
+    await Promise.all(promises);
+    console.log("Tous les modèles sont chargés !");
+    sync3DWorld(); // On affiche tout ce qu'on a déjà acheté
+}
 
 // --- GROUPE DES OBJETS DU JEU ---
 const worldGroup = new THREE.Group();
@@ -131,63 +184,69 @@ function clickCoreEffect() {
     }, 100);
 }
 
-// --- GESTION DES BÂTIMENTS 3D ---
 const spawnedObjects = {
     stagiaire: [], correcteur: [], imprimerie: [], serveur: [], ia: []
 };
 
 // Fonction pour ajouter visuellement un objet
 function spawnBuilding(type) {
-    const info = CONFIG.upgrades[type];
-    const index = spawnedObjects[type].length;
-    
-    // Définir la géométrie selon le type (Formes simples pour l'instant)
-    let mesh;
-    const color = info.color;
-    
-    if (type === 'stagiaire') {
-        // Petit cube
-        const geo = new THREE.BoxGeometry(0.8, 1, 0.8);
-        const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.5 });
-        mesh = new THREE.Mesh(geo, mat);
-        // Positionnement en cercle autour du centre (rayon 5)
-        const angle = index * 0.5;
-        mesh.position.set(Math.cos(angle) * 5, 0.5, Math.sin(angle) * 5);
-        
-    } else if (type === 'serveur') {
-        // Grand prisme
-        const geo = new THREE.BoxGeometry(1, 3, 1);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x222, emissive: color, emissiveIntensity: 0.5 });
-        mesh = new THREE.Mesh(geo, mat);
-        // Positionnement en cercle plus loin (rayon 12)
-        const angle = index * 0.4;
-        mesh.position.set(Math.cos(angle) * 12, 1.5, Math.sin(angle) * 12);
-    } else {
-        // Par défaut (sphères pour les autres)
-        const geo = new THREE.SphereGeometry(0.5);
-        const mat = new THREE.MeshStandardMaterial({ color: color });
-        mesh = new THREE.Mesh(geo, mat);
-        // Positionnement aléatoire "organisé"
-        const radius = 8 + (Object.keys(CONFIG.upgrades).indexOf(type) * 3);
-        const angle = index * 0.5 + 1;
-        mesh.position.set(Math.cos(angle) * radius, 0.5, Math.sin(angle) * radius);
+    // Si le modèle n'est pas encore chargé (ex: connexion lente), on attend ou on met un cube placeholder
+    if (!loadedModels[type]) {
+        console.warn(`Modèle ${type} pas encore prêt.`);
+        return; 
     }
 
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    const index = spawnedObjects[type].length;
     
-    // Animation d'apparition
+    // CLONAGE DU MODÈLE (Très performant)
+    const mesh = loadedModels[type].clone();
+    
+    // POSITIONNEMENT (Logique en cercles concentriques)
+    let radius, angle, yPos;
+
+    if (type === 'stagiaire') {
+        radius = 5; 
+        yPos = 0; // Au sol
+        angle = index * 0.8;
+    } else if (type === 'correcteur') {
+        radius = 8;
+        yPos = 0;
+        angle = index * 0.7 + 1;
+    } else if (type === 'serveur') {
+        radius = 12;
+        yPos = 0;
+        angle = index * 0.5 + 2;
+    } else {
+        radius = 15 + (Math.random() * 2);
+        yPos = 0;
+        angle = index * 0.5;
+    }
+
+    mesh.position.set(
+        Math.cos(angle) * radius, 
+        yPos, 
+        Math.sin(angle) * radius
+    );
+
+    // Orientation : Regarder vers le centre (le Cœur)
+    mesh.lookAt(0, yPos, 0);
+
+    // Animation d'apparition (Scale up)
     mesh.scale.set(0,0,0);
     
     scene.add(mesh);
     spawnedObjects[type].push(mesh);
-    
-    // Animation tween simple (sans library externe)
+
+    // Animation simple
     let s = 0;
+    const targetScale = 0.5; // Doit correspondre à l'échelle de base définie dans le loader
     const anim = setInterval(() => {
-        s += 0.1;
+        s += 0.05;
         mesh.scale.set(s, s, s);
-        if(s >= 1) clearInterval(anim);
+        if(s >= targetScale) {
+            mesh.scale.set(targetScale, targetScale, targetScale);
+            clearInterval(anim);
+        }
     }, 16);
 }
 
@@ -358,8 +417,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!verifierPseudo()) return;
     
     initHUD();
-    await loadGame();
-    sync3DWorld(); // Faire apparaître les objets sauvegardés
+    await loadGame(); // Charge les données (combien j'ai de stagiaires)
+    
+    loadAllModels(); 
     
     // Sauvegarde auto
     setInterval(saveGame, 30000);
