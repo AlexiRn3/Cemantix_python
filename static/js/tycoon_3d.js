@@ -19,10 +19,10 @@ const CONFIG = {
 
 const ASSETS = {
     stagiaire: '/static/models/desk.glb',      // Un bureau
-    correcteur: '/static/models/computer.glb', // Un ordi
-    imprimerie: '/static/models/printer.glb',  // Une imprimante
-    serveur: '/static/models/server_rack.glb', // Un rack serveur
-    ia: '/static/models/quantum_computer.glb'  // Une grosse machine
+    correcteur: '/static/models/computerScreen.glb', // Un ordi
+    imprimerie: '/static/models/table.glb',  // Une imprimante
+    serveur: '/static/models/speaker.glb', // Un rack serveur
+    ia: '/static/models/shower.glb'  // Une grosse machine
 };
 
 let gameState = {
