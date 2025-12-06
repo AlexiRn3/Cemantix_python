@@ -41,7 +41,7 @@ let loadedCount = 0;
 const totalModelsToLoad = 4; // Nombre de modèles qu'on appelle ci-dessous
 
 function loadModel(fileName, x, y, z, rotationY = 0) {
-    const path = `./assets/models/${fileName}`;
+    const path = `/static/models/${fileName}`;
     
     loader.load(path, (gltf) => {
         const model = gltf.scene;
