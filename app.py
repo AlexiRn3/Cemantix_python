@@ -515,39 +515,6 @@ async def report_bug(report: BugReportRequest):
 
     return {"message": "Signalement reçu, merci !"}
 
-@app.get("/tycoon", response_class=HTMLResponse)
-def tycoon_page():
-    """Sert la page du jeu Idle"""
-    path = Path("static/tycoon.html")
-    if not path.exists():
-        return JSONResponse(status_code=404, content={"message": "Page non trouvée"})
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
-
-@app.get("/tycoon/load")
-async def load_tycoon_save(current_user: User = Depends(get_current_user)):
-    """Récupère la sauvegarde du joueur connecté"""
-    return current_user.tycoon_save or {}
-
-@app.post("/tycoon/save")
-async def save_tycoon_game(
-    payload: SaveGameRequest, 
-    current_user: User = Depends(get_current_user), 
-    db: AsyncSession = Depends(get_db)
-):
-    """Sauvegarde l'état du jeu"""
-    # Mise à jour directe de l'objet utilisateur chargé par la dépendance
-    current_user.tycoon_save = payload.save_data
-    
-    # On commit les changements
-    try:
-        await db.commit()
-        return {"status": "saved"}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail="Erreur sauvegarde")
-
-
 def _get_log_content() -> str:
     if not LOG_FILE_PATH.exists():
         return "Aucun log disponible pour le moment."
