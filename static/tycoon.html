@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Kenney Furniture Environment</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; }
+        #loading {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: sans-serif; font-weight: bold; color: white;
+            background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 5px;
+            pointer-events: none;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="loading">Chargement des assets...</div>
+    <script type="module" src="/static/js/tycoon.js"></script>
+</body>
+</html>
