@@ -2,161 +2,144 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>L'Archive Sémantique</title>
+    <title>L'Archive - Centre de Contrôle</title>
     <link rel="stylesheet" href="/static/style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
     <style>
-        /* Styles spécifiques au Tycoon */
-        .tycoon-grid {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 30px;
-            margin-top: 20px;
-        }
+        body { margin: 0; overflow: hidden; background: #000; }
         
-        .resource-panel {
-            background: var(--surface);
-            padding: 30px;
-            border-radius: var(--radius-l);
-            box-shadow: var(--shadow-soft);
-            text-align: center;
-            position: sticky;
-            top: 20px;
-            height: fit-content;
-        }
-
-        .count-display {
-            font-size: 3.5rem;
-            font-family: var(--font-heading);
-            color: var(--accent);
-            margin: 10px 0;
-        }
-
-        .clicker-btn {
+        /* Canvas 3D en arrière-plan */
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 20px;
-            font-size: 1.2rem;
-            margin-top: 20px;
-            background: linear-gradient(135deg, var(--text-main), #4a4a4a);
-            transition: transform 0.1s;
-        }
-        .clicker-btn:active { transform: scale(0.95); }
-
-        .upgrades-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
+            height: 100%;
+            z-index: 1;
         }
 
-        .upgrade-card {
-            background: var(--surface);
-            padding: 20px;
-            border-radius: var(--radius-m);
-            border: 2px solid var(--border);
-            cursor: pointer;
-            transition: all 0.2s;
+        /* HUD (Interface utilisateur par dessus la 3D) */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none; /* Laisse passer les clics vers la 3D sauf sur les boutons */
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
-        .upgrade-card:hover {
-            border-color: var(--secondary);
-            transform: translateY(-3px);
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: auto;
         }
 
-        .upgrade-card.disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            filter: grayscale(1);
+        .resource-counter {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            padding: 15px 30px;
+            border-radius: 30px;
+            border: 1px solid var(--accent);
+            text-align: center;
         }
 
-        .save-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
+        .hud-bottom {
+            pointer-events: auto;
+            background: rgba(20, 20, 20, 0.9);
+            border-top: 2px solid var(--secondary);
+            height: 160px;
+            overflow-x: auto;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 15px;
+            /* Scroll horizontal pour les upgrades */
+            white-space: nowrap;
+        }
+
+        .upgrade-card-3d {
+            background: var(--surface);
+            min-width: 140px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: transform 0.2s;
             color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            opacity: 0;
-            transition: opacity 0.5s;
+            text-align: center;
+            display: inline-block;
         }
+        
+        .upgrade-card-3d:hover { transform: translateY(-5px); border-color: var(--secondary); }
+        .upgrade-card-3d.disabled { opacity: 0.5; filter: grayscale(1); }
 
-        @media (max-width: 800px) {
-            .tycoon-grid { grid-template-columns: 1fr; }
-            .resource-panel { position: relative; top: 0; }
+        .back-btn {
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: 1px solid white;
+            padding: 10px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div class="user-controls">
-    <button id="btn-profile" class="profile-btn" onclick="openLoginModal()">
-        <div class="avatar">👤</div>
-        <span id="profile-name-display">Connexion</span>
-    </button>
-</div>
+<canvas id="game-canvas"></canvas>
 
-<div class="container">
-    <nav style="margin-bottom: 20px;">
-        <a href="/" style="font-family: var(--font-heading); font-weight: 700;">&larr; RETOUR HUB</a>
-    </nav>
-
-    <header style="text-align: center; margin-bottom: 40px;">
-        <h1>L'ARCHIVE SÉMANTIQUE</h1>
-        <p style="color: var(--text-muted);">Accumulez du Savoir pour décrypter l'univers.</p>
-    </header>
-
-    <div class="tycoon-grid">
-        <div class="resource-panel">
-            <h3>Unités de Savoir</h3>
-            <div id="currency-display" class="count-display">0</div>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">
-                +<span id="pps-display">0</span> / seconde
-            </p>
-            
-            <button id="click-btn" class="btn clicker-btn">
-                🧠 Analyser un mot (+1)
-            </button>
+<div id="ui-layer">
+    <div class="hud-top">
+        <a href="/" class="back-btn">← QUITTER</a>
+        
+        <div class="resource-counter">
+            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Savoir Accumulé</div>
+            <div id="currency-display" style="font-size: 2rem; font-weight: bold; color: var(--accent);">0</div>
+            <div style="font-size: 0.9rem;">+<span id="pps-display">0</span> / sec</div>
         </div>
 
-        <div>
-            <h3 style="margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom:10px;">
-                Infrastructure Cognitive
-            </h3>
-            <div id="upgrades-container" class="upgrades-list">
-                </div>
-        </div>
+        <button class="back-btn" onclick="openLoginModal()">👤 Compte</button>
     </div>
-</div>
 
-<div id="save-notification" class="save-status">Sauvegarde...</div>
+    <div class="hud-bottom" id="upgrades-container">
+        </div>
+</div>
 
 <div id="modal-overlay" class="modal-overlay">
     <div class="modal-box">
         <div id="modal-title" class="modal-title"></div>
         <div id="modal-content" class="modal-content"></div>
-        <div class="modal-actions" id="modal-actions">
-            <button class="btn" onclick="closeModal()">Fermer</button>
-        </div>
+        <div class="modal-actions"><button class="btn" onclick="closeModal()">Fermer</button></div>
     </div>
 </div>
 
-<script type="module" src="/static/js/tycoon.js"></script>
+<script type="module" src="/static/js/tycoon_3d.js"></script>
+
 <script type="module">
     import { updateSessionUI, verifierPseudo } from "/static/js/session.js";
     import { openLoginModal, closeModal } from "/static/js/modal.js";
-    
-    // Expose functions globally for HTML onClick events
     window.openLoginModal = openLoginModal;
     window.closeModal = closeModal;
     
     document.addEventListener("DOMContentLoaded", () => {
-        updateSessionUI();
-        // Force la connexion si pas connecté, car le jeu nécessite une sauvegarde
-        setTimeout(() => verifierPseudo(), 500);
+        if(!verifierPseudo()) {
+            document.getElementById('ui-layer').style.display = 'none'; // Cache l'UI si pas connecté
+        }
     });
 </script>
 
