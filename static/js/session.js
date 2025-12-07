@@ -72,8 +72,6 @@ export function logout() {
     } else {
         // Si on est déjà sur le Hub
         if(window.closeModal) window.closeModal();
-        
-        // AJOUT : Rechargement explicite de la page
         setTimeout(() => location.reload(), 100); 
     }
 }
